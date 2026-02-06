@@ -1,6 +1,7 @@
 .avatar {
     width: 20px;
     height: 20px;
+    min-width: 20px;
     border-radius: 50%;
     background-color: #ccc;
     color: #666;
@@ -12,8 +13,18 @@
 }
 
 .icon {
-    width: 40px;
-    height: 40px;
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    min-height: 20px;
+    border-radius: 50%;
+    background-color: #e0e0e0;
+    color: #333;
     display: flex;
+    align-items: center;
     justify-content: center;
+    font-size: 10px;
+    margin-right: 1em;
+    overflow: hidden;
+    flex-shrink: 0;
 }

@@ -8,6 +8,7 @@ import ChatContext, { IChatContext } from '@/contexts/ChatContext';
 
 const Chat = () => {
     const [text, setText] = useState('');
+    const [loading, setLoading] = useState(false);
     const { messages, addMessage } = useContext(ChatContext) as IChatContext;
 
     const renderMessages = () => {
@@ -15,25 +16,64 @@ const Chat = () => {
             <Message key={index} message={message} />
         ));
     };
-    const sumbitMessage = () => {
-        addMessage({ sender: 'User', text: text })
+
+    const submitMessage = async () => {
+        const userText = text.trim();
+        if (!userText || loading) return;
+
+        addMessage({ sender: 'User', text: userText });
         setText('');
-    }
+        setLoading(true);
+
+        const apiMessages = messages
+            .concat([{ sender: 'User' as const, text: userText }])
+            .map((m) => ({
+                role: m.sender === 'User' ? 'user' as const : 'assistant' as const,
+                content: m.text
+            }));
+
+        try {
+            const res = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ messages: apiMessages })
+            });
+            const data = await res.json();
+
+            if (!res.ok) {
+                addMessage({
+                    sender: 'System',
+                    text: `Error: ${data.error ?? res.statusText}. Comprueba que OPENAI_API_KEY esté configurada.`
+                });
+                return;
+            }
+            addMessage({ sender: 'System', text: data.content ?? '' });
+        } catch (e) {
+            addMessage({
+                sender: 'System',
+                text: `Error de conexión: ${e instanceof Error ? e.message : 'Inténtalo de nuevo.'}`
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
     return (
         <div className={styles.chat}>
-            {renderMessages()}
+            <div className={styles.messagesWrapper}>
+                {renderMessages()}
+            </div>
             <div className={styles.bottomBar}>
                 <TextInput
                     value={text}
                     onChange={(e) => setText(e.target.value)}
                     radius="xl"
-                    onKeyDown={(event) => event.key === 'Enter' ? sumbitMessage() : null}
+                    onKeyDown={(event) => event.key === 'Enter' ? submitMessage() : null}
                     size="md"
                     placeholder="Search questions"
                     rightSectionWidth={42}
                     leftSection={<IconSearch size={18} stroke={1.5} />}
                     rightSection={
-                        <ActionIcon size={32} radius="xl" onClick={() => sumbitMessage()}>
+                        <ActionIcon size={32} radius="xl" onClick={() => submitMessage()} loading={loading} disabled={loading}>
                             <IconArrowRight size={18} stroke={1.5} />
                         </ActionIcon>
                     }

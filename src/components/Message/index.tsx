@@ -16,7 +16,7 @@ const Message: React.FC<{ message: IMessage }> = ({ message }) => {
             <Avatar
                 isSystem={isSystem}
             />
-            <div className={styles.text}>{message.text}</div>
+            <div className={styles.text} dangerouslySetInnerHTML={{ __html: message.text }} />
         </div>
     );
 };

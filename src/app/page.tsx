@@ -9,15 +9,18 @@ import { UserNameContext } from '@/contexts/UserNameContext';
 
 export default function ChatPage() {
   return (
-
-          <Box className={styles.homeWrapper}>
-            <UserNameContext.Provider value={{ name: 'Unai' }}>
-              <ChatContextProvider>
-                <NavBar />
-                <Chat />
-              </ChatContextProvider>
-            </UserNameContext.Provider>
-          </Box>
+    <Box className={styles.homeWrapper}>
+      <div className={styles.mainLayout}>
+        <NavBar />
+        <div className={styles.chatArea}>
+          <UserNameContext.Provider value={{ name: 'Unai' }}>
+            <ChatContextProvider>
+              <Chat />
+            </ChatContextProvider>
+          </UserNameContext.Provider>
+        </div>
+      </div>
+    </Box>
 
 
   );

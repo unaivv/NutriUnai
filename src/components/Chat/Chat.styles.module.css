@@ -1,17 +1,21 @@
 .chat {
     flex: 1;
-    height: 100vh;
-    overflow: auto;
-    padding: 20px 20px 82px 20px;
-    position: relative;
+    min-width: 0;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+}
 
-    .bottomBar {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        padding: 20px;
-    }
+.messagesWrapper {
+    flex: 1;
+    overflow: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.bottomBar {
+    flex-shrink: 0;
+    padding: 20px;
+    background-color: var(--mantine-color-body, #fff);
 }

@@ -1,5 +1,23 @@
 .homeWrapper {
     display: flex;
-    align-items: center;
-    justify-content: center;
+    flex-direction: row;
+    height: 100vh;
+    width: 100%;
+    overflow: hidden;
+}
+
+.mainLayout {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    flex-direction: row;
+    overflow: hidden;
+}
+
+.chatArea {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
