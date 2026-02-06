@@ -1,66 +1,52 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+"use client";
+import React, { useState } from 'react';
+import { Box, Stack, ScrollArea, Text, TextInput, Button } from '@mantine/core';
 
-export default function Home() {
+export default function ChatPage() {
+  const [messages, setMessages] = useState<{ sender: string; text: string }[]>([]);
+  const [input, setInput] = useState('');
+
+  const handleSend = () => {
+    if (!input.trim()) return; // Prevent sending empty messages
+
+    const newMessage = { sender: 'User', text: input };
+    setMessages((prevMessages) => [...prevMessages, newMessage]);
+    setInput('');
+
+    // Simulate a response from the system
+    simulateResponse(input).then((response) => {
+      setMessages((prevMessages) => [...prevMessages, { sender: 'System', text: response }]);
+    });
+  };
+
+  const simulateResponse = (message: string): Promise<string> => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(`Respuesta simulada para: "${message}"`);
+      }, 1000);
+    });
+  };
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <Box style={{ maxWidth: 600, margin: 'auto', padding: '1rem' }}>
+      <Stack>
+        <ScrollArea style={{ height: 400, border: '1px solid #e0e0e0', borderRadius: '8px', padding: '1rem' }}>
+          <Stack>
+            {messages.map((msg, index) => (
+              <Text key={index} color={msg.sender === 'User' ? 'blue' : 'green'}>
+                <strong>{msg.sender}:</strong> {msg.text}
+              </Text>
+            ))}
+          </Stack>
+        </ScrollArea>
+        <TextInput
+          placeholder="Escribe tu mensaje..."
+          value={input}
+          onChange={(e) => setInput(e.currentTarget.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSend()}
         />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.tsx file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+        <Button onClick={handleSend}>Enviar</Button>
+      </Stack>
+    </Box>
   );
 }
