@@ -1,5 +1,5 @@
 import { ActionIcon, TextInput } from '@mantine/core';
-import { useContext, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import styles from './Chat.styles.module.css';
 import { IconArrowRight, IconSearch } from '@tabler/icons-react';
 import Message from '../Message';
@@ -57,10 +57,18 @@ const Chat = () => {
             setLoading(false);
         }
     };
+
+    const bottomRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages]);
+
     return (
         <div className={styles.chat}>
             <div className={styles.messagesWrapper}>
                 {renderMessages()}
+                <div ref={bottomRef} />
             </div>
             <div className={styles.bottomBar}>
                 <TextInput
