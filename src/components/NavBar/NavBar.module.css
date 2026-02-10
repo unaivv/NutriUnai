@@ -98,3 +98,13 @@
 .user {
     padding: var(--mantine-spacing-md);
 }
+
+.mainLinkText {
+    text-decoration: none;
+    color: inherit;
+
+    &.active {
+        font-weight: 700;
+        color: var(--mantine-color-blue-6);
+    }
+}
