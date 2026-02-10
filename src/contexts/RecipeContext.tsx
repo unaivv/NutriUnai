@@ -1,3 +1,5 @@
+'use client';
+
 import React, { createContext, useCallback, useState, useEffect } from 'react';
 
 export interface Recipe {
@@ -14,6 +16,7 @@ export interface IRecipeContext {
     isRecipeSaved: (content: string) => boolean;
     loading: boolean;
     error: string | null;
+    refreshRecipes: () => Promise<void>;
 }
 
 const defaultValue: IRecipeContext = {
@@ -22,7 +25,8 @@ const defaultValue: IRecipeContext = {
     deleteRecipe: async () => { },
     isRecipeSaved: () => false,
     loading: false,
-    error: null
+    error: null,
+    refreshRecipes: async () => { }
 };
 
 export const RecipeContext = createContext<IRecipeContext>(defaultValue);
@@ -32,19 +36,19 @@ export const RecipeContextProvider: React.FC<{ children: React.ReactNode }> = ({
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
+    // Load recipes from API
+    const refreshRecipes = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
 
-            // Solo cargar en el cliente
-            if (typeof window !== 'undefined') {
-                const savedRecipes = localStorage.getItem('savedRecipes');
-                if (savedRecipes) {
-                    const parsedRecipes = JSON.parse(savedRecipes);
-                    setRecipes(parsedRecipes);
-                }
+            const response = await fetch('/api/recipes');
+            if (!response.ok) {
+                throw new Error('Failed to fetch recipes');
             }
+
+            const data = await response.json();
+            setRecipes(data);
         } catch (err) {
             console.error('Error loading recipes:', err);
             setError('Error al cargar las recetas');
@@ -54,23 +58,26 @@ export const RecipeContextProvider: React.FC<{ children: React.ReactNode }> = ({
     }, []);
 
     useEffect(() => {
-        if (typeof window !== 'undefined' && recipes.length > 0) {
-            localStorage.setItem('savedRecipes', JSON.stringify(recipes));
-        }
-    }, [recipes]);
+        refreshRecipes();
+    }, [refreshRecipes]);
 
     const saveRecipe = useCallback(async (title: string, content: string) => {
         try {
             setLoading(true);
             setError(null);
 
-            const newRecipe: Recipe = {
-                id: Date.now().toString(),
-                title,
-                content,
-                savedAt: new Date().toISOString()
-            };
+            const response = await fetch('/api/recipes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, content })
+            });
 
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to save recipe');
+            }
+
+            const newRecipe = await response.json();
             setRecipes(prev => [newRecipe, ...prev]);
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Error al guardar la receta';
@@ -86,21 +93,15 @@ export const RecipeContextProvider: React.FC<{ children: React.ReactNode }> = ({
             setLoading(true);
             setError(null);
 
-            // Remove from state immediately
-            setRecipes(prev => {
-                const filtered = prev.filter(recipe => recipe.id !== id);
-                return filtered;
+            const response = await fetch(`/api/recipes/${id}`, {
+                method: 'DELETE'
             });
 
-            // Update localStorage immediately
-            if (typeof window !== 'undefined') {
-                const currentRecipes = localStorage.getItem('savedRecipes');
-                if (currentRecipes) {
-                    const parsed = JSON.parse(currentRecipes);
-                    const filtered = parsed.filter((recipe: Recipe) => recipe.id !== id);
-                    localStorage.setItem('savedRecipes', JSON.stringify(filtered));
-                }
+            if (!response.ok) {
+                throw new Error('Failed to delete recipe');
             }
+
+            setRecipes(prev => prev.filter(recipe => recipe.id !== id));
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Error al eliminar la receta';
             setError(errorMessage);
@@ -121,7 +122,8 @@ export const RecipeContextProvider: React.FC<{ children: React.ReactNode }> = ({
             deleteRecipe,
             isRecipeSaved,
             loading,
-            error
+            error,
+            refreshRecipes
         }}>
             {children}
         </RecipeContext.Provider>

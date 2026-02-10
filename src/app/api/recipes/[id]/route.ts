@@ -1,12 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { recipeDb } from '@/lib/database-simple';
+import { jwtVerify } from 'jose';
 
-// DELETE /api/recipes/[id] - Delete a recipe
+const JWT_SECRET = new TextEncoder().encode(
+    process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+);
+
+// Helper to get user ID from token
+async function getUserIdFromToken(request: NextRequest): Promise<string | null> {
+    const token = request.cookies.get('auth-token')?.value;
+    if (!token) return null;
+
+    try {
+        const { payload } = await jwtVerify(token, JWT_SECRET);
+        return payload.userId?.toString() || null;
+    } catch {
+        return null;
+    }
+}
+
+// DELETE /api/recipes/[id] - Delete a recipe (only if belongs to user)
 export async function DELETE(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const userId = await getUserIdFromToken(request);
+        if (!userId) {
+            return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+        }
+
         const resolvedParams = await params;
         const recipeId = resolvedParams.id;
 
@@ -17,8 +40,8 @@ export async function DELETE(
             );
         }
 
-        // First check if recipe exists
-        const recipe = await recipeDb.getById(recipeId);
+        // First check if recipe exists and belongs to user
+        const recipe = await recipeDb.getById(recipeId, userId);
         if (!recipe) {
             return NextResponse.json(
                 { error: 'Recipe not found' },
@@ -26,7 +49,7 @@ export async function DELETE(
             );
         }
 
-        const deleted = await recipeDb.delete(recipeId);
+        const deleted = await recipeDb.delete(recipeId, userId);
 
         if (!deleted) {
             return NextResponse.json(

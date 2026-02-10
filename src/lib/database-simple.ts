@@ -5,6 +5,7 @@ const DB_PATH = join(process.cwd(), 'recipes.json');
 
 export interface Recipe {
     id: string;
+    userId: string;
     title: string;
     content: string;
     savedAt: string;
@@ -45,51 +46,54 @@ const saveRecipes = async (recipesList: Recipe[]): Promise<void> => {
 };
 
 export const recipeDb = {
-    // Get all recipes
-    getAll: async (): Promise<Recipe[]> => {
+    // Get all recipes for a user
+    getAllForUser: async (userId: string): Promise<Recipe[]> => {
         const allRecipes = await loadRecipes();
-        return allRecipes.sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime());
+        return allRecipes
+            .filter(recipe => recipe.userId === userId)
+            .sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime());
     },
 
-    // Get recipe by ID
-    getById: async (id: string): Promise<Recipe | null> => {
+    // Get recipe by ID (only if belongs to user)
+    getById: async (id: string, userId?: string): Promise<Recipe | null> => {
         const allRecipes = await loadRecipes();
-        return allRecipes.find(recipe => recipe.id === id) || null;
+        const recipe = allRecipes.find(recipe => recipe.id === id);
+        if (!recipe) return null;
+        if (userId && recipe.userId !== userId) return null;
+        return recipe;
     },
 
-    // Create new recipe
-    create: async (title: string, content: string): Promise<Recipe> => {
+    // Create new recipe for user
+    create: async (userId: string, title: string, content: string): Promise<Recipe> => {
         const allRecipes = await loadRecipes();
         const newRecipe: Recipe = {
             id: Date.now().toString(),
+            userId,
             title,
             content,
             savedAt: new Date().toISOString()
         };
-        
+
         const updatedRecipes = [newRecipe, ...allRecipes];
         await saveRecipes(updatedRecipes);
-        
+
         return newRecipe;
     },
 
-    // Delete recipe by ID
-    delete: async (id: string): Promise<boolean> => {
+    // Delete recipe by ID (only if belongs to user)
+    delete: async (id: string, userId: string): Promise<boolean> => {
         const allRecipes = await loadRecipes();
-        const initialLength = allRecipes.length;
+        const recipe = allRecipes.find(r => r.id === id);
+        if (!recipe || recipe.userId !== userId) return false;
+
         const filteredRecipes = allRecipes.filter(recipe => recipe.id !== id);
-        
-        if (filteredRecipes.length < initialLength) {
-            await saveRecipes(filteredRecipes);
-            return true;
-        }
-        
-        return false;
+        await saveRecipes(filteredRecipes);
+        return true;
     },
 
-    // Check if recipe content already exists
-    existsByContent: async (content: string): Promise<boolean> => {
+    // Check if recipe content already exists for user
+    existsByContent: async (content: string, userId: string): Promise<boolean> => {
         const allRecipes = await loadRecipes();
-        return allRecipes.some(recipe => recipe.content === content);
+        return allRecipes.some(recipe => recipe.content === content && recipe.userId === userId);
     }
 };

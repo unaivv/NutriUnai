@@ -1,18 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { initChatsDatabase, chatsDb } from '@/lib/chatsDatabase';
+import { jwtVerify } from 'jose';
 
-// GET /api/chats/[id] - Obtener un chat específico
+const JWT_SECRET = new TextEncoder().encode(
+    process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+);
+
+// Helper to get user ID from token
+async function getUserIdFromToken(request: NextRequest): Promise<number | null> {
+    const token = request.cookies.get('auth-token')?.value;
+    if (!token) return null;
+
+    try {
+        const { payload } = await jwtVerify(token, JWT_SECRET);
+        return payload.userId as number;
+    } catch {
+        return null;
+    }
+}
+
+// GET /api/chats/[id] - Obtener un chat específico del usuario
 export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const userId = await getUserIdFromToken(request);
+        if (!userId) {
+            return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+        }
+
         await initChatsDatabase();
 
         const resolvedParams = await params;
         const chatId = resolvedParams.id;
 
-        const chat = await chatsDb.getByChatId(chatId);
+        const chat = await chatsDb.getByChatId(chatId, userId);
 
         if (!chat) {
             return NextResponse.json(
@@ -31,12 +54,17 @@ export async function GET(
     }
 }
 
-// PUT /api/chats/[id] - Actualizar mensajes de un chat
+// PUT /api/chats/[id] - Actualizar mensajes de un chat del usuario
 export async function PUT(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const userId = await getUserIdFromToken(request);
+        if (!userId) {
+            return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+        }
+
         await initChatsDatabase();
 
         const resolvedParams = await params;
@@ -52,7 +80,7 @@ export async function PUT(
             );
         }
 
-        const success = await chatsDb.updateMessages(chatId, messages);
+        const success = await chatsDb.updateMessages(chatId, userId, messages);
 
         if (!success) {
             return NextResponse.json(
@@ -71,18 +99,23 @@ export async function PUT(
     }
 }
 
-// DELETE /api/chats/[id] - Eliminar un chat
+// DELETE /api/chats/[id] - Eliminar un chat del usuario
 export async function DELETE(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const userId = await getUserIdFromToken(request);
+        if (!userId) {
+            return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+        }
+
         await initChatsDatabase();
 
         const resolvedParams = await params;
         const chatId = resolvedParams.id;
 
-        const success = await chatsDb.delete(chatId);
+        const success = await chatsDb.delete(chatId, userId);
 
         if (!success) {
             return NextResponse.json(

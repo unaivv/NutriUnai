@@ -12,6 +12,8 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <head>
         <ColorSchemeScript defaultColorScheme="auto" />
+        <meta name="robots" content="noindex, nofollow, noarchive" />
+        <meta name="googlebot" content="noindex, nofollow" />
       </head>
       <body>
         <MantineProvider defaultColorScheme="auto">
