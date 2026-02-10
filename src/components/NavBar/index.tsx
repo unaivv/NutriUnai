@@ -8,38 +8,86 @@ import {
     TextInput,
     Tooltip,
     UnstyledButton,
+    Loader,
 } from '@mantine/core';
+import { IconPlus, IconTrash } from '@tabler/icons-react';
 import classes from './NavBar.module.css';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 
-const links = [
+const mainLinks = [
     { label: 'Chat', route: '/' },
     { label: 'Recetas', route: '/recetas' }
 ];
 
-//TODO: get recent chats from database
-const chats = [
-    { label: 'Sales' },
-    { label: 'Deliveries' },
-    { label: 'Discounts' },
-    { label: 'Profits' },
-    { label: 'Reports' },
-    { label: 'Orders' },
-    { label: 'Events' },
-    { label: 'Debts' },
-    { label: 'Customers' },
-];
-
 export function NavBar() {
-    const mainLinks = links.map((link) => {
-        const isActive = usePathname() === link.route;
+    const router = useRouter();
+    const pathname = usePathname();
+    const [chats, setChats] = useState<Array<{ label: string; route: string; chatId: string }>>([]);
+    const [loading, setLoading] = useState(true);
+    const [hoveredChat, setHoveredChat] = useState<string | null>(null);
+    const [deletingChat, setDeletingChat] = useState<string | null>(null);
+
+    // Cargar chats desde el backend
+    useEffect(() => {
+        const fetchChats = async () => {
+            try {
+                setLoading(true);
+                const response = await fetch('/api/chats');
+                const data = await response.json();
+                setChats(data.map((chat: any) => ({
+                    label: chat.title,
+                    route: `/chat/${chat.chat_id}`,
+                    chatId: chat.chat_id
+                })));
+            } catch (error) {
+                console.error('Error loading chats:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchChats();
+    }, []);
+
+    // Función para eliminar un chat
+    const handleDeleteChat = async (chatId: string, e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!confirm('¿Estás seguro de que quieres eliminar este chat?')) return;
+
+        try {
+            setDeletingChat(chatId);
+            const response = await fetch(`/api/chats/${chatId}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                // Actualizar la lista de chats
+                setChats(prev => prev.filter(chat => chat.chatId !== chatId));
+
+                // Si el chat eliminado es el actual, redirigir al home
+                if (pathname === `/chat/${chatId}`) {
+                    router.push('/');
+                }
+            } else {
+                console.error('Error deleting chat:', await response.json());
+            }
+        } catch (error) {
+            console.error('Error deleting chat:', error);
+        } finally {
+            setDeletingChat(null);
+        }
+    };
+
+    const mainLinksComponents = mainLinks.map((link) => {
+        const isActive = pathname === link.route;
         return (
             <UnstyledButton key={link.label} className={classes.mainLink}>
                 <div className={classes.mainLinkInner}>
-                    {
-                        <Link href={link.route} className={`${classes.mainLinkText} ${isActive ? classes.active : ''}`}>{link.label}</Link>
-                    }
+                    <Link href={link.route} className={`${classes.mainLinkText} ${isActive ? classes.active : ''}`}>{link.label}</Link>
                 </div>
             </UnstyledButton>
         );
@@ -47,42 +95,97 @@ export function NavBar() {
 
     const user = { name: 'Unai Vidal' };
 
-    const collectionLinks = chats.map((chat) => (
-        <a
-            href="#"
-            onClick={(event) => event.preventDefault()}
-            key={chat.label}
-            className={classes.collectionLink}
-        >
-            {chat.label}
-        </a>
-    ));
-
     return (
         <nav className={classes.navbar}>
             <div className={classes.section}>
-                {/* TODO: Put logo (NutriUnai) with good font family, elegant and modern, non just image, just text */}
+                {/* Logo de la app */}
                 <Text size="lg" fw={700} c="blue" style={{
-                    padding: 'var(--mantine-spacing-md)',
                     fontWeight: 700,
                     letterSpacing: '0.15em',
                 }}>NutriUnai</Text>
                 <div className={classes.user}>
-                    Hola {user.name}
+                    <Text size="sm" fw={500} c="dimmed">
+                        Hola, {user.name}
+                    </Text>
                 </div>
             </div>
 
             <div className={classes.section}>
-                <div className={classes.mainLinks}>{mainLinks}</div>
+                <Box className={classes.navbarInner}>
+                    <Group>
+                        <div className={classes.links}>
+                            {mainLinksComponents}
+                        </div>
+                    </Group>
+                </Box>
             </div>
 
-            <div className={classes.section}>
-                <Group className={classes.collectionsHeader} justify="space-between">
-                    <Text size="xs" fw={500} c="dimmed">
-                        Chats recientes
-                    </Text>
-                </Group>
-                <div className={classes.collections}>{collectionLinks}</div>
+            <div className={`${classes.section} ${classes.sectionGrow}`}>
+                <Text size="xs" fw={500} c="dimmed">
+                    Chats recientes
+                </Text>
+                <div className={classes.chatsSection}>
+                    <div className={classes.collectionsList}>
+                        {loading ? (
+                            <div className={classes.collectionsLoader}>
+                                <Loader size="sm" />
+                            </div>
+                        ) : chats.length > 0 ? (
+                            <>
+                                {chats.map((chat) => {
+                                    const isActive = pathname === chat.route;
+                                    const isHovered = hoveredChat === chat.chatId;
+                                    const isDeleting = deletingChat === chat.chatId;
+                                    return (
+                                        <Link
+                                            key={chat.route}
+                                            href={chat.route}
+                                            className={`${classes.collectionLink} ${isActive ? classes.collectionLinkActive : ''} ${classes.collectionLinkWithDelete}`}
+                                            onMouseEnter={() => setHoveredChat(chat.chatId)}
+                                            onMouseLeave={() => setHoveredChat(null)}
+                                            style={{ position: 'relative' }}
+                                        >
+                                            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                {chat.label}
+                                            </span>
+                                            {(isHovered || isDeleting) && (
+                                                <ActionIcon
+                                                    size="sm"
+                                                    color="red"
+                                                    variant="transparent"
+                                                    onClick={(e) => handleDeleteChat(chat.chatId, e)}
+                                                    loading={isDeleting}
+                                                    style={{
+                                                        marginLeft: '4px',
+                                                        transition: 'opacity 0.2s ease, transform 0.2s ease',
+                                                        opacity: isHovered || isDeleting ? 1 : 0,
+                                                        transform: isHovered || isDeleting ? 'scale(1)' : 'scale(0.8)'
+                                                    }}
+                                                >
+                                                    <IconTrash size={14} />
+                                                </ActionIcon>
+                                            )}
+                                        </Link>
+                                    );
+                                })}
+                                <Link href="/" className={classes.newChatLink}>
+                                    <IconPlus size={16} />
+                                    Empezar nuevo chat
+                                </Link>
+                            </>
+                        ) : (
+                            <>
+                                <Text size="xs" c="dimmed" style={{ paddingTop: 6, marginBottom: 10 }}>
+                                    No tienes chats guardados
+                                </Text>
+                                <Link href="/" className={classes.newChatButton}>
+                                    <IconPlus size={16} />
+                                    Empezar nuevo chat
+                                </Link>
+                            </>
+                        )}
+                    </div>
+                </div>
             </div>
         </nav>
     );

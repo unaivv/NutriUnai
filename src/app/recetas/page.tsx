@@ -28,7 +28,7 @@ function RecetasContent() {
     <Box className={styles.homeWrapper}>
       <div className={styles.mainLayout}>
         <NavBar />
-        <div className={styles.chatArea}>
+        <div className={styles.chatArea} style={{ overflow: 'auto' }}>
           <Box style={{ padding: '20px', width: '100%', position: 'relative' }}>
             <LoadingOverlay visible={loading && !deletingId} />
 

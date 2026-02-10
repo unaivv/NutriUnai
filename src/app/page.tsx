@@ -7,7 +7,6 @@ import { RecipeContextProvider } from '@/contexts/RecipeContext';
 import Chat from '@/components/Chat';
 import { UserNameContext } from '@/contexts/UserNameContext';
 
-
 export default function ChatPage() {
   return (
     <Box className={styles.homeWrapper}>
