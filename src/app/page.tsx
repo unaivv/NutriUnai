@@ -3,6 +3,7 @@ import { Box } from '@mantine/core';
 import { NavBar } from '@/components/NavBar';
 import styles from './Home.styles.module.css';
 import { ChatContextProvider } from '@/contexts/ChatContext';
+import { RecipeContextProvider } from '@/contexts/RecipeContext';
 import Chat from '@/components/Chat';
 import { UserNameContext } from '@/contexts/UserNameContext';
 
@@ -14,9 +15,11 @@ export default function ChatPage() {
         <NavBar />
         <div className={styles.chatArea}>
           <UserNameContext.Provider value={{ name: 'Unai' }}>
-            <ChatContextProvider>
-              <Chat />
-            </ChatContextProvider>
+            <RecipeContextProvider>
+              <ChatContextProvider>
+                <Chat />
+              </ChatContextProvider>
+            </RecipeContextProvider>
           </UserNameContext.Provider>
         </div>
       </div>

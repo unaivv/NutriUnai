@@ -42,9 +42,12 @@ Formato de respuesta (OBLIGATORIO)
 • Línea final:
 “Cantidades ajustadas proporcionalmente para cumplir los macros de la comida.”
 
-Devuelve ÚNICAMENTE HTML válido. sin body ni html solo dentro de un div. SIn h1 ni titulos de dingun tipo, solo p y listas.
+Devuelve ÚNICAMENTE HTML válido. sin body ni html solo dentro de un div. Sin h1 ni titulos de dingun tipo, solo p y listas.
+Devuelve SOLO el contenido HTML interno.
+NO incluyas <div>, <html>, <body> ni elementos contenedores.
 NO Markdown.
 NO texto fuera del HTML.
+
 
 Plan nutricional del usuario:
 

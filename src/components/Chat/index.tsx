@@ -40,13 +40,6 @@ const Chat = () => {
             });
             const data = await res.json();
 
-            if (!res.ok) {
-                addMessage({
-                    sender: 'System',
-                    text: `Error: ${data.error ?? res.statusText}. Comprueba que OPENAI_API_KEY esté configurada.`
-                });
-                return;
-            }
             addMessage({ sender: 'System', text: data.content ?? '' });
         } catch (e) {
             addMessage({

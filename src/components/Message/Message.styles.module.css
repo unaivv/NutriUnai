@@ -40,3 +40,34 @@
 .text {
     word-wrap: break-word;
 }
+
+.content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.saveButton {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    align-self: flex-start;
+    transition: background-color 0.2s ease;
+}
+
+.saveButton:hover:not(:disabled) {
+    background-color: #0056b3;
+}
+
+.saveButton:disabled {
+    background-color: #28a745;
+    cursor: not-allowed;
+}
+
+.saveButton.saved {
+    background-color: #28a745;
+}
