@@ -1,5 +1,6 @@
 import '@mantine/core/styles.css';
 import { MantineProvider, ColorSchemeScript } from '@mantine/core';
+import { AuthProvider } from '@/contexts/AuthContext';
 import './global.css';
 
 export default function RootLayout({
@@ -14,7 +15,9 @@ export default function RootLayout({
       </head>
       <body>
         <MantineProvider defaultColorScheme="auto">
-          {children}
+          <AuthProvider>
+            {children}
+          </AuthProvider>
         </MantineProvider>
       </body>
     </html>

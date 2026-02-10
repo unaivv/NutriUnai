@@ -8,11 +8,14 @@ let db: sqlite3.Database;
 let dbInitialized = false;
 let initPromise: Promise<void> | null = null;
 
+export type UserStatus = 'pending' | 'active' | 'rejected';
+
 export interface UserRow {
     id: number;
     email: string;
     password_hash: string;
     name: string;
+    status: UserStatus;
     created_at: string;
 }
 
@@ -43,6 +46,7 @@ export const initUsersDatabase = (): Promise<void> => {
                     email TEXT UNIQUE NOT NULL,
                     password_hash TEXT NOT NULL,
                     name TEXT NOT NULL,
+                    status TEXT DEFAULT 'pending' NOT NULL,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             `, (err) => {
@@ -85,14 +89,31 @@ const get = (sql: string, params: any[] = []): Promise<any> => {
     });
 };
 
+const all = (sql: string, params: any[] = []): Promise<any[]> => {
+    return new Promise((resolve, reject) => {
+        db.all(sql, params, (err, rows) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(rows);
+            }
+        });
+    });
+};
+
 export const usersDb = {
     createUser: async (email: string, password: string, name: string): Promise<UserRow> => {
+        // Check if this is the first user (auto-approve)
+        const count = await get('SELECT COUNT(*) as count FROM users');
+        const isFirstUser = count.count === 0;
+        const status = isFirstUser ? 'active' : 'pending';
+
         const passwordHash = await bcrypt.hash(password, 10);
         const result = await run(
-            'INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)',
-            [email, passwordHash, name]
+            'INSERT INTO users (email, password_hash, name, status) VALUES (?, ?, ?, ?)',
+            [email, passwordHash, name, status]
         );
-        const newUser = await get('SELECT id, email, name, created_at FROM users WHERE id = ?', [result.lastID]);
+        const newUser = await get('SELECT id, email, name, status, created_at FROM users WHERE id = ?', [result.lastID]);
         return newUser;
     },
 
@@ -101,7 +122,33 @@ export const usersDb = {
         return row || null;
     },
 
+    findById: async (id: number): Promise<UserRow | null> => {
+        const row = await get('SELECT * FROM users WHERE id = ?', [id]);
+        return row || null;
+    },
+
     validatePassword: async (password: string, hash: string): Promise<boolean> => {
         return bcrypt.compare(password, hash);
+    },
+
+    // Admin functions
+    getAllUsers: async (): Promise<UserRow[]> => {
+        const rows = await all('SELECT id, email, name, status, created_at FROM users ORDER BY created_at DESC');
+        return rows;
+    },
+
+    getPendingUsers: async (): Promise<UserRow[]> => {
+        const rows = await all('SELECT id, email, name, status, created_at FROM users WHERE status = ? ORDER BY created_at DESC', ['pending']);
+        return rows;
+    },
+
+    updateStatus: async (userId: number, status: UserStatus): Promise<boolean> => {
+        const result = await run('UPDATE users SET status = ? WHERE id = ?', [status, userId]);
+        return result.changes > 0;
+    },
+
+    deleteUser: async (userId: number): Promise<boolean> => {
+        const result = await run('DELETE FROM users WHERE id = ?', [userId]);
+        return result.changes > 0;
     }
 };

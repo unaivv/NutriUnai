@@ -2,6 +2,7 @@ import {
     ActionIcon,
     Badge,
     Box,
+    Button,
     Code,
     Group,
     Text,
@@ -10,11 +11,12 @@ import {
     UnstyledButton,
     Loader,
 } from '@mantine/core';
-import { IconPlus, IconTrash } from '@tabler/icons-react';
+import { IconPlus, IconTrash, IconLogout } from '@tabler/icons-react';
 import classes from './NavBar.module.css';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const mainLinks = [
     { label: 'Chat', route: '/' },
@@ -24,6 +26,7 @@ const mainLinks = [
 export function NavBar() {
     const router = useRouter();
     const pathname = usePathname();
+    const { user, logout } = useAuth();
     const [chats, setChats] = useState<Array<{ label: string; route: string; chatId: string }>>([]);
     const [loading, setLoading] = useState(true);
     const [hoveredChat, setHoveredChat] = useState<string | null>(null);
@@ -93,7 +96,7 @@ export function NavBar() {
         );
     });
 
-    const user = { name: 'Unai Vidal' };
+    const userDisplayName = user?.name || 'Usuario';
 
     return (
         <nav className={classes.navbar}>
@@ -105,7 +108,7 @@ export function NavBar() {
                 }}>NutriUnai</Text>
                 <div className={classes.user}>
                     <Text size="sm" fw={500} c="dimmed">
-                        Hola, {user.name}
+                        Hola, {userDisplayName}
                     </Text>
                 </div>
             </div>
@@ -186,6 +189,18 @@ export function NavBar() {
                         )}
                     </div>
                 </div>
+            </div>
+
+            <div className={classes.section} style={{ marginTop: 'auto' }}>
+                <Button
+                    variant="subtle"
+                    size="xs"
+                    leftSection={<IconLogout size={14} />}
+                    onClick={logout}
+                    fullWidth
+                >
+                    Cerrar sesión
+                </Button>
             </div>
         </nav>
     );
