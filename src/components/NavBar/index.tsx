@@ -61,6 +61,12 @@ export function NavBar() {
     return (
         <nav className={classes.navbar}>
             <div className={classes.section}>
+                {/* TODO: Put logo (NutriUnai) with good font family, elegant and modern, non just image, just text */}
+                <Text size="lg" fw={700} c="blue" style={{
+                    padding: 'var(--mantine-spacing-md)',
+                    fontWeight: 700,
+                    letterSpacing: '0.15em',
+                }}>NutriUnai</Text>
                 <div className={classes.user}>
                     Hola {user.name}
                 </div>
