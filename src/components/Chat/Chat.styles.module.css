@@ -19,3 +19,11 @@
     padding: 20px;
     background-color: var(--mantine-color-body, #fff);
 }
+
+.planSelector {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding: 0 4px;
+}

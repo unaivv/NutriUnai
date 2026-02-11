@@ -10,6 +10,24 @@ function RecetasContent() {
   const { recipes, deleteRecipe, loading, error } = useContext(RecipeContext);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  const getPlanLabel = (plan?: 'unai' | 'marifeli' | 'both') => {
+    switch (plan) {
+      case 'unai': return 'Unai';
+      case 'marifeli': return 'Mari Feli';
+      case 'both': return 'Ambos';
+      default: return 'Desconocido';
+    }
+  };
+
+  const getPlanColor = (plan?: 'unai' | 'marifeli' | 'both') => {
+    switch (plan) {
+      case 'unai': return 'blue';
+      case 'marifeli': return 'pink';
+      case 'both': return 'grape';
+      default: return 'gray';
+    }
+  };
+
   const handleDeleteRecipe = async (id: string) => {
     if (window.confirm('¿Estás seguro de que quieres eliminar esta receta?')) {
       try {
@@ -54,9 +72,16 @@ function RecetasContent() {
                   <Card key={recipe.id} shadow="sm" padding="lg" radius="md" withBorder>
                     <Group justify="space-between" mb="xs">
                       <Text fw={500} size="lg">{recipe.title}</Text>
-                      <Badge color="blue" variant="light">
-                        {new Date(recipe.savedAt).toLocaleDateString('es-ES')}
-                      </Badge>
+                      <Group gap="xs">
+                        {recipe.plan && (
+                          <Badge color={getPlanColor(recipe.plan)} variant="filled" size="sm">
+                            {getPlanLabel(recipe.plan)}
+                          </Badge>
+                        )}
+                        <Badge color="blue" variant="light">
+                          {new Date(recipe.savedAt).toLocaleDateString('es-ES')}
+                        </Badge>
+                      </Group>
                     </Group>
                     <div
                       dangerouslySetInnerHTML={{ __html: recipe.content }}

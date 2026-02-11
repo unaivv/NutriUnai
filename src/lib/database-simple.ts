@@ -9,6 +9,7 @@ export interface Recipe {
     title: string;
     content: string;
     savedAt: string;
+    plan?: 'unai' | 'marifeli' | 'both';
 }
 
 let recipes: Recipe[] = [];
@@ -64,14 +65,15 @@ export const recipeDb = {
     },
 
     // Create new recipe for user
-    create: async (userId: string, title: string, content: string): Promise<Recipe> => {
+    create: async (userId: string, title: string, content: string, plan?: 'unai' | 'marifeli' | 'both'): Promise<Recipe> => {
         const allRecipes = await loadRecipes();
         const newRecipe: Recipe = {
             id: Date.now().toString(),
             userId,
             title,
             content,
-            savedAt: new Date().toISOString()
+            savedAt: new Date().toISOString(),
+            plan
         };
 
         const updatedRecipes = [newRecipe, ...allRecipes];

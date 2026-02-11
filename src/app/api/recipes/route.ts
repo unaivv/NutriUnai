@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { title, content } = body;
+        const { title, content, plan } = body;
 
         if (!title || !content) {
             return NextResponse.json(
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const newRecipe = await recipeDb.create(userId, title, content);
+        const newRecipe = await recipeDb.create(userId, title, content, plan);
         return NextResponse.json(newRecipe, { status: 201 });
     } catch (error) {
         console.error('Error creating recipe:', error);

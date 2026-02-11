@@ -1,6 +1,8 @@
 import { IMessage } from '@/components/Message/Message.types';
 import React, { createContext, useCallback, useEffect, useState } from 'react';
 
+export type NutritionPlan = 'unai' | 'marifeli' | 'both';
+
 export interface IChatContext {
     messages: IMessage[];
     addMessage: (message: IMessage) => void;
@@ -11,6 +13,8 @@ export interface IChatContext {
     currentChatId: string | null;
     setCurrentChatId: (id: string | null) => void;
     createNewChat: () => string;
+    selectedPlan: NutritionPlan;
+    setSelectedPlan: (plan: NutritionPlan) => void;
 }
 
 export interface ChatHistory {
@@ -34,7 +38,9 @@ const defaultValue: IChatContext = {
     setChatHistory: () => { },
     currentChatId: null,
     setCurrentChatId: () => { },
-    createNewChat: () => ''
+    createNewChat: () => '',
+    selectedPlan: 'unai',
+    setSelectedPlan: () => { }
 };
 
 const ChatContext = createContext<IChatContext>(defaultValue);
@@ -43,6 +49,7 @@ export const ChatContextProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const [messages, setMessages] = useState<IMessage[]>(defaultMessages);
     const [chatHistory, setChatHistory] = useState<ChatHistory[]>([]);
     const [currentChatId, setCurrentChatId] = useState<string | null>(null);
+    const [selectedPlan, setSelectedPlan] = useState<NutritionPlan>('unai');
 
     // Load chat history from localStorage on mount
     useEffect(() => {
@@ -124,7 +131,9 @@ export const ChatContextProvider: React.FC<{ children: React.ReactNode }> = ({ c
             setChatHistory,
             currentChatId,
             setCurrentChatId,
-            createNewChat
+            createNewChat,
+            selectedPlan,
+            setSelectedPlan
         }}>
             {children}
         </ChatContext.Provider>

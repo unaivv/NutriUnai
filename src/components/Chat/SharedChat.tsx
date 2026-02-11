@@ -1,9 +1,11 @@
-import { ActionIcon, TextInput } from '@mantine/core';
+import { ActionIcon, TextInput, SegmentedControl, Badge } from '@mantine/core';
 import { useState, useEffect, useRef } from 'react';
 import styles from './Chat.styles.module.css';
 import { IconArrowRight, IconSearch } from '@tabler/icons-react';
 import Message from '../Message';
 import { IMessage } from '../Message/Message.types';
+import { ChatContext, NutritionPlan } from '@/contexts/ChatContext';
+import { useContext } from 'react';
 
 interface SharedChatProps {
     initialMessages?: IMessage[];
@@ -20,6 +22,7 @@ const SharedChat: React.FC<SharedChatProps> = ({
 }) => {
     const [text, setText] = useState('');
     const [loading, setLoading] = useState(false);
+    const { selectedPlan, setSelectedPlan } = useContext(ChatContext);
     // Si no hay mensajes iniciales, mostrar el mensaje de bienvenida por defecto
     const [messages, setMessages] = useState<IMessage[]>(
         initialMessages.length > 0
@@ -74,12 +77,14 @@ const SharedChat: React.FC<SharedChatProps> = ({
             const res = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ messages: apiMessages })
+                body: JSON.stringify({ messages: apiMessages, plan: selectedPlan })
             });
             const data = await res.json();
+            const responsePlan = data.plan || selectedPlan;
+            const responsePlanLabel = data.planLabel || (selectedPlan === 'both' ? 'Ambos planes' : selectedPlan === 'unai' ? 'Plan Unai' : 'Plan Mari Feli');
 
             // Agregar respuesta de la IA
-            setMessages(prev => [...prev, { sender: 'System', text: data.content ?? '' }]);
+            setMessages(prev => [...prev, { sender: 'System', text: data.content ?? '', plan: responsePlan, planLabel: responsePlanLabel }]);
         } catch (e) {
             setMessages(prev => [...prev, {
                 sender: 'System',
@@ -97,6 +102,22 @@ const SharedChat: React.FC<SharedChatProps> = ({
                 <div ref={bottomRef} />
             </div>
             <div className={styles.bottomBar}>
+                <div className={styles.planSelector}>
+                    <Badge color={selectedPlan === 'unai' ? 'blue' : selectedPlan === 'marifeli' ? 'pink' : 'grape'} size="sm" variant="light">
+                        Plan: {selectedPlan === 'unai' ? 'Unai' : selectedPlan === 'marifeli' ? 'Mari Feli' : 'Ambos'}
+                    </Badge>
+                    <SegmentedControl
+                        value={selectedPlan}
+                        onChange={(value) => setSelectedPlan(value as NutritionPlan)}
+                        data={[
+                            { label: 'Unai', value: 'unai' },
+                            { label: 'Mari Feli', value: 'marifeli' },
+                            { label: 'Ambos', value: 'both' }
+                        ]}
+                        size="xs"
+                        disabled={loading}
+                    />
+                </div>
                 <TextInput
                     value={text}
                     onChange={(e) => setText(e.target.value)}

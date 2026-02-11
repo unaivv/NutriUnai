@@ -1,17 +1,17 @@
-import { ActionIcon, TextInput } from '@mantine/core';
+import { ActionIcon, TextInput, SegmentedControl, Badge } from '@mantine/core';
 import { useContext, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './Chat.styles.module.css';
 import { IconArrowRight, IconSearch } from '@tabler/icons-react';
 import Message from '../Message';
 import { IMessage } from '../Message/Message.types';
-import ChatContext, { IChatContext } from '@/contexts/ChatContext';
+import ChatContext, { IChatContext, NutritionPlan } from '@/contexts/ChatContext';
 
 const Chat = () => {
     const router = useRouter();
     const [text, setText] = useState('');
     const [loading, setLoading] = useState(false);
-    const { messages, addMessage, saveChatHistory, currentChatId, createNewChat } = useContext(ChatContext) as IChatContext;
+    const { messages, addMessage, saveChatHistory, currentChatId, createNewChat, selectedPlan, setSelectedPlan } = useContext(ChatContext) as IChatContext;
 
     const renderMessages = () => {
         return messages.map((message: IMessage, index: number) => (
@@ -57,10 +57,12 @@ const Chat = () => {
                     const res = await fetch('/api/chat', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ messages: apiMessages })
+                        body: JSON.stringify({ messages: apiMessages, plan: selectedPlan })
                     });
                     const data = await res.json();
                     const aiResponse = data.content ?? '';
+                    const responsePlan = data.plan || selectedPlan;
+                    const responsePlanLabel = data.planLabel || getPlanLabel(selectedPlan);
 
                     // Actualizar el chat con la respuesta completa (mensaje de bienvenida + usuario + IA)
                     await fetch(`/api/chats/${chatId}`, {
@@ -70,7 +72,7 @@ const Chat = () => {
                             messages: [
                                 { sender: 'System', text: 'Soy tu asistente de nutrición. ¿Qué necesitas?' },
                                 { sender: 'User', text: userText },
-                                { sender: 'System', text: aiResponse }
+                                { sender: 'System', text: aiResponse, plan: responsePlan, planLabel: responsePlanLabel }
                             ]
                         })
                     });
@@ -101,7 +103,7 @@ const Chat = () => {
         const apiMessages = messages
             .concat([{ sender: 'User' as const, text: userText }])
             .map((m) => ({
-                role: m.sender === 'User' ? 'user' as const : 'assistant' as const,
+                role: m.sender === 'User' ? ('user' as const) : ('assistant' as const),
                 content: m.text
             }));
 
@@ -109,11 +111,13 @@ const Chat = () => {
             const res = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ messages: apiMessages })
+                body: JSON.stringify({ messages: apiMessages, plan: selectedPlan })
             });
             const data = await res.json();
+            const responsePlan = data.plan || selectedPlan;
+            const responsePlanLabel = data.planLabel || getPlanLabel(selectedPlan);
 
-            addMessage({ sender: 'System', text: data.content ?? '' });
+            addMessage({ sender: 'System', text: data.content ?? '', plan: responsePlan, planLabel: responsePlanLabel });
 
             // Guardar el chat en el historial después de recibir respuesta
             await saveChatHistory();
@@ -124,6 +128,22 @@ const Chat = () => {
             });
         } finally {
             setLoading(false);
+        }
+    };
+
+    const getPlanLabel = (plan: NutritionPlan) => {
+        switch (plan) {
+            case 'unai': return 'Unai';
+            case 'marifeli': return 'Mari Feli';
+            case 'both': return 'Ambos';
+        }
+    };
+
+    const getPlanColor = (plan: NutritionPlan) => {
+        switch (plan) {
+            case 'unai': return 'blue';
+            case 'marifeli': return 'pink';
+            case 'both': return 'grape';
         }
     };
 
@@ -140,6 +160,22 @@ const Chat = () => {
                 <div ref={bottomRef} />
             </div>
             <div className={styles.bottomBar}>
+                <div className={styles.planSelector}>
+                    <Badge color={getPlanColor(selectedPlan)} size="sm" variant="light">
+                        Plan: {getPlanLabel(selectedPlan)}
+                    </Badge>
+                    <SegmentedControl
+                        value={selectedPlan}
+                        onChange={(value) => setSelectedPlan(value as NutritionPlan)}
+                        data={[
+                            { label: 'Unai', value: 'unai' },
+                            { label: 'Mari Feli', value: 'marifeli' },
+                            { label: 'Ambos', value: 'both' }
+                        ]}
+                        size="xs"
+                        disabled={loading}
+                    />
+                </div>
                 <TextInput
                     value={text}
                     onChange={(e) => setText(e.target.value)}

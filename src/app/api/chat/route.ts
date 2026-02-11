@@ -3,6 +3,27 @@ import { join } from 'node:path';
 import { NextResponse } from 'next/server';
 import { SYSTEM_PROMPT } from './promt';
 
+export type NutritionPlan = 'unai' | 'marifeli' | 'both';
+
+function loadPlanContent(plan: NutritionPlan): string {
+	const filesDir = join(process.cwd(), 'src', 'files');
+
+	if (plan === 'unai') {
+		const planPath = join(filesDir, 'unai.md');
+		return readFileSync(planPath, 'utf-8');
+	} else if (plan === 'marifeli') {
+		const planPath = join(filesDir, 'marifeli.md');
+		return readFileSync(planPath, 'utf-8');
+	} else {
+		// Both plans
+		const unaiPath = join(filesDir, 'unai.md');
+		const marifeliPath = join(filesDir, 'marifeli.md');
+		const unaiContent = readFileSync(unaiPath, 'utf-8');
+		const marifeliContent = readFileSync(marifeliPath, 'utf-8');
+		return `PLAN DE UNAI:\n${unaiContent}\n\n---\n\nPLAN DE MARI FELI:\n${marifeliContent}`;
+	}
+}
+
 export async function POST(request: Request) {
 	try {
 		const apiKey = process.env.OPENAI_API_KEY;
@@ -14,7 +35,7 @@ export async function POST(request: Request) {
 		}
 
 		const body = await request.json();
-		const { messages } = body as { messages: { role: string; content: string }[] };
+		const { messages, plan = 'unai' } = body as { messages: { role: string; content: string }[]; plan: NutritionPlan };
 		if (!Array.isArray(messages) || messages.length === 0) {
 			return NextResponse.json(
 				{ error: 'Se requiere un array de mensajes' },
@@ -22,9 +43,9 @@ export async function POST(request: Request) {
 			);
 		}
 
-		const planPath = join(process.cwd(), 'src', 'files', 'unai.md');
-		const planContent = readFileSync(planPath, 'utf-8');
-		const systemContent = SYSTEM_PROMPT + planContent;
+		const planContent = loadPlanContent(plan);
+		const planLabel = plan === 'both' ? 'Ambos planes' : plan === 'unai' ? 'Plan Unai' : 'Plan Mari Feli';
+		const systemContent = SYSTEM_PROMPT + '\n\n' + planContent + '\n\n[INFO: Usando ' + planLabel + ']';
 
 		const openaiMessages = [
 			{ role: 'system' as const, content: systemContent },
@@ -60,7 +81,7 @@ export async function POST(request: Request) {
 		};
 		const content = data.choices?.[0]?.message?.content ?? 'No pude generar una respuesta.';
 
-		return NextResponse.json({ content });
+		return NextResponse.json({ content, plan, planLabel });
 	} catch (e) {
 		console.error('Chat API error:', e);
 		return NextResponse.json(

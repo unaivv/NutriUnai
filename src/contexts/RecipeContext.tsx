@@ -7,11 +7,12 @@ export interface Recipe {
     title: string;
     content: string;
     savedAt: string;
+    plan?: 'unai' | 'marifeli' | 'both';
 }
 
 export interface IRecipeContext {
     recipes: Recipe[];
-    saveRecipe: (title: string, content: string) => Promise<void>;
+    saveRecipe: (title: string, content: string, plan?: 'unai' | 'marifeli' | 'both') => Promise<void>;
     deleteRecipe: (id: string) => Promise<void>;
     isRecipeSaved: (content: string) => boolean;
     loading: boolean;
@@ -61,7 +62,7 @@ export const RecipeContextProvider: React.FC<{ children: React.ReactNode }> = ({
         refreshRecipes();
     }, [refreshRecipes]);
 
-    const saveRecipe = useCallback(async (title: string, content: string) => {
+    const saveRecipe = useCallback(async (title: string, content: string, plan?: 'unai' | 'marifeli' | 'both') => {
         try {
             setLoading(true);
             setError(null);
@@ -69,7 +70,7 @@ export const RecipeContextProvider: React.FC<{ children: React.ReactNode }> = ({
             const response = await fetch('/api/recipes', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title, content })
+                body: JSON.stringify({ title, content, plan })
             });
 
             if (!response.ok) {
