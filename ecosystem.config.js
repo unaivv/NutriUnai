@@ -6,11 +6,15 @@ module.exports = {
     cwd: __dirname,
     env: {
       NODE_ENV: 'production',
-      PORT: 3001
+      PORT: 3001,
+      OPENAI_API_KEY: 'tu-api-key-aqui',
+      JWT_SECRET: 'jqyghGBNub0w5Dr+gHilO6wKdoiYASxNgBNvHUmO7Cs='
     },
     env_production: {
       NODE_ENV: 'production',
-      PORT: 3001
+      PORT: 3001,
+      OPENAI_API_KEY: 'tu-api-key-aqui',
+      JWT_SECRET: 'jqyghGBNub0w5Dr+gHilO6wKdoiYASxNgBNvHUmO7Cs='
     },
     instances: 1,
     autorestart: true,
