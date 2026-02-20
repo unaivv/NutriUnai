@@ -21,3 +21,18 @@
     flex-direction: column;
     overflow: hidden;
 }
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+    .homeWrapper {
+        flex-direction: column;
+    }
+    
+    .mainLayout {
+        flex-direction: column;
+    }
+    
+    .chatArea {
+        height: calc(100vh - 60px); /* Account for mobile header */
+    }
+}
