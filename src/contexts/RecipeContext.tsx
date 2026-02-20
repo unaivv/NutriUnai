@@ -3,7 +3,7 @@
 import React, { createContext, useCallback, useState, useEffect } from 'react';
 
 export interface Recipe {
-    id: string;
+    id: number;
     title: string;
     content: string;
     savedAt: string;
@@ -13,7 +13,7 @@ export interface Recipe {
 export interface IRecipeContext {
     recipes: Recipe[];
     saveRecipe: (title: string, content: string, plan?: 'unai' | 'marifeli' | 'both') => Promise<void>;
-    deleteRecipe: (id: string) => Promise<void>;
+    deleteRecipe: (id: number) => Promise<void>;
     isRecipeSaved: (content: string) => boolean;
     loading: boolean;
     error: string | null;
@@ -89,7 +89,7 @@ export const RecipeContextProvider: React.FC<{ children: React.ReactNode }> = ({
         }
     }, []);
 
-    const deleteRecipe = useCallback(async (id: string) => {
+    const deleteRecipe = useCallback(async (id: number) => {
         try {
             setLoading(true);
             setError(null);

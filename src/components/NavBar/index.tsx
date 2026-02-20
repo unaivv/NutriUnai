@@ -12,6 +12,7 @@ import {
     Loader,
     Drawer,
     Burger,
+    Modal,
 } from '@mantine/core';
 import { IconPlus, IconTrash, IconLogout, IconX } from '@tabler/icons-react';
 import classes from './NavBar.module.css';
@@ -36,6 +37,8 @@ export function NavBar() {
     const [deletingChat, setDeletingChat] = useState<string | null>(null);
     const [mobileOpened, { toggle: toggleMobile, close: closeMobile }] = useDisclosure(false);
     const [isMobile, setIsMobile] = useState(false);
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [chatToDelete, setChatToDelete] = useState<string | null>(null);
 
     // Detectar si es pantalla móvil
     useEffect(() => {
@@ -75,21 +78,25 @@ export function NavBar() {
     const handleDeleteChat = async (chatId: string, e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
+        setChatToDelete(chatId);
+        setDeleteModalOpen(true);
+    };
 
-        if (!confirm('¿Estás seguro de que quieres eliminar este chat?')) return;
+    const confirmDeleteChat = async () => {
+        if (!chatToDelete) return;
 
         try {
-            setDeletingChat(chatId);
-            const response = await fetch(`/api/chats/${chatId}`, {
+            setDeletingChat(chatToDelete);
+            const response = await fetch(`/api/chats/${chatToDelete}`, {
                 method: 'DELETE'
             });
 
             if (response.ok) {
                 // Actualizar la lista de chats
-                setChats(prev => prev.filter(chat => chat.chatId !== chatId));
+                setChats(prev => prev.filter(chat => chat.chatId !== chatToDelete));
 
                 // Si el chat eliminado es el actual, redirigir al home
-                if (pathname === `/chat/${chatId}`) {
+                if (pathname === `/chat/${chatToDelete}`) {
                     router.push('/');
                 }
             } else {
@@ -99,7 +106,14 @@ export function NavBar() {
             console.error('Error deleting chat:', error);
         } finally {
             setDeletingChat(null);
+            setDeleteModalOpen(false);
+            setChatToDelete(null);
         }
+    };
+
+    const cancelDeleteChat = () => {
+        setDeleteModalOpen(false);
+        setChatToDelete(null);
     };
 
     // Función para manejar clic en enlaces (cerrar drawer en móvil)
@@ -183,23 +197,21 @@ export function NavBar() {
                                             <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                                 {chat.label}
                                             </span>
-                                            {(isHovered || isDeleting) && (
-                                                <ActionIcon
-                                                    size="sm"
-                                                    color="red"
-                                                    variant="transparent"
-                                                    onClick={(e) => handleDeleteChat(chat.chatId, e)}
-                                                    loading={isDeleting}
-                                                    style={{
-                                                        marginLeft: '4px',
-                                                        transition: 'opacity 0.2s ease, transform 0.2s ease',
-                                                        opacity: isHovered || isDeleting ? 1 : 0,
-                                                        transform: isHovered || isDeleting ? 'scale(1)' : 'scale(0.8)'
-                                                    }}
-                                                >
-                                                    <IconTrash size={14} />
-                                                </ActionIcon>
-                                            )}
+                                            <ActionIcon
+                                                size="sm"
+                                                color="red"
+                                                variant="transparent"
+                                                onClick={(e) => handleDeleteChat(chat.chatId, e)}
+                                                loading={isDeleting}
+                                                style={{
+                                                    marginLeft: '4px',
+                                                    transition: 'opacity 0.2s ease, transform 0.2s ease',
+                                                    opacity: (isHovered || isDeleting || isMobile) ? 1 : 0,
+                                                    transform: (isHovered || isDeleting || isMobile) ? 'scale(1)' : 'scale(0.8)'
+                                                }}
+                                            >
+                                                <IconTrash size={14} />
+                                            </ActionIcon>
                                         </Link>
                                     );
                                 })}
@@ -288,6 +300,26 @@ export function NavBar() {
                     {navbarContent}
                 </div>
             </Drawer>
+
+            {/* Modal de confirmación de eliminación de chat */}
+            <Modal
+                opened={deleteModalOpen}
+                onClose={cancelDeleteChat}
+                title="Confirmar eliminación"
+                centered
+            >
+                <Text mb="lg">
+                    ¿Estás seguro de que quieres eliminar este chat? Esta acción no se puede deshacer.
+                </Text>
+                <Group justify="flex-end">
+                    <Button variant="light" onClick={cancelDeleteChat}>
+                        Cancelar
+                    </Button>
+                    <Button color="red" onClick={confirmDeleteChat} loading={!!deletingChat}>
+                        Eliminar
+                    </Button>
+                </Group>
+            </Modal>
         </>
     );
 }
