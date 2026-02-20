@@ -4,6 +4,7 @@ import { Box, Text, Card, Button, Group, Stack, Title, Badge, Alert, LoadingOver
 import { NavBar } from '@/components/NavBar';
 import { RecipeContextProvider, RecipeContext } from '@/contexts/RecipeContext';
 import styles from '../Home.styles.module.css';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 function RecetasContent() {
   const { recipes, deleteRecipe, loading, error } = useContext(RecipeContext);
@@ -111,8 +112,10 @@ function RecetasContent() {
 
 export default function RecetasPage() {
   return (
-    <RecipeContextProvider>
-      <RecetasContent />
-    </RecipeContextProvider>
+    <ProtectedRoute>
+      <RecipeContextProvider>
+        <RecetasContent />
+      </RecipeContextProvider>
+    </ProtectedRoute>
   );
 }

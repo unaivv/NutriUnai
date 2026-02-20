@@ -7,6 +7,7 @@ import { NavBar } from '@/components/NavBar';
 import SharedChat from '@/components/Chat/SharedChat';
 import { IMessage } from '@/components/Message/Message.types';
 import styles from '../../Home.styles.module.css';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 const ChatPage = () => {
     const router = useRouter();
@@ -75,7 +76,8 @@ const ChatPage = () => {
     }
 
     return (
-        <Box className={styles.homeWrapper}>
+        <ProtectedRoute>
+            <Box className={styles.homeWrapper}>
             <div className={styles.mainLayout}>
                 <NavBar />
                 <div className={styles.chatArea}>
@@ -89,6 +91,7 @@ const ChatPage = () => {
                 </div>
             </div>
         </Box>
+        </ProtectedRoute>
     );
 };
 

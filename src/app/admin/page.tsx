@@ -15,6 +15,7 @@ import {
     Tabs
 } from '@mantine/core';
 import { IconAlertCircle, IconCheck, IconX, IconTrash } from '@tabler/icons-react';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 interface User {
     id: number;
@@ -195,7 +196,8 @@ export default function AdminPage() {
     const rejectedUsers = users.filter(u => u.status === 'rejected');
 
     return (
-        <Container size="xl" my={40}>
+        <ProtectedRoute>
+            <Container size="xl" my={40}>
             <Title order={2} mb="xl">Panel de Administración</Title>
             
             {error && (
@@ -270,5 +272,6 @@ export default function AdminPage() {
                 </Tabs.Panel>
             </Tabs>
         </Container>
+        </ProtectedRoute>
     );
 }
