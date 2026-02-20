@@ -27,6 +27,12 @@ export async function middleware(request: NextRequest) {
     }
 
     const token = request.cookies.get('auth-token')?.value;
+    
+    // Add debug logging for production
+    if (process.env.NODE_ENV === 'production') {
+        console.log('Middleware - Path:', pathname);
+        console.log('Middleware - Token exists:', !!token);
+    }
 
     // Check admin paths
     if (ADMIN_PATHS.some(path => pathname.startsWith(path))) {
