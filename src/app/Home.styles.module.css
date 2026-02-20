@@ -2,6 +2,7 @@
     display: flex;
     flex-direction: row;
     height: 100vh;
+    height: 100dvh; /* Dynamic viewport height for mobile browsers */
     width: 100%;
     overflow: hidden;
 }
@@ -26,6 +27,7 @@
 @media (max-width: 768px) {
     .homeWrapper {
         flex-direction: column;
+        height: 100dvh; /* Use dynamic viewport height */
     }
     
     .mainLayout {
@@ -33,6 +35,8 @@
     }
     
     .chatArea {
-        height: calc(100vh - 60px); /* Account for mobile header */
+        height: auto; /* Let flex handle the height */
+        flex: 1;
+        min-height: 0; /* Important for flex children */
     }
 }

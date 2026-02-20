@@ -4,20 +4,25 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    height: 100%;
 }
 
 .messagesWrapper {
     flex: 1;
     overflow: auto;
     padding: 20px;
+    padding-bottom: 10px; /* Reduced padding for mobile */
     display: flex;
     flex-direction: column;
+    min-height: 0; /* Important for flex children */
 }
 
 .bottomBar {
     flex-shrink: 0;
     padding: 20px;
+    padding-top: 10px; /* Reduced top padding */
     background-color: var(--mantine-color-body, #fff);
+    border-top: 1px solid var(--mantine-color-gray-2);
 }
 
 .planSelector {
@@ -26,4 +31,22 @@
     gap: 12px;
     margin-bottom: 12px;
     padding: 0 4px;
+}
+
+/* Mobile specific adjustments */
+@media (max-width: 768px) {
+    .messagesWrapper {
+        padding: 15px;
+        padding-bottom: 5px;
+    }
+    
+    .bottomBar {
+        padding: 15px;
+        padding-top: 8px;
+    }
+    
+    .planSelector {
+        gap: 8px;
+        margin-bottom: 8px;
+    }
 }
