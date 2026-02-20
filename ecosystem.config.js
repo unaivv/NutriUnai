@@ -20,7 +20,7 @@ module.exports = {
     out_file: './logs/out.log',
     log_file: './logs/combined.log',
     time: true,
-    env_file: '.env.local',
+    env_file: '.env',
     merge_logs: true,
     kill_timeout: 5000,
     wait_ready: true,
