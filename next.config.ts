@@ -3,7 +3,9 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   reactCompiler: true,
-  assetPrefix: 'https://nutriunai.unaividal.com',
+  assetPrefix: process.env.NODE_ENV === 'production' 
+    ? 'https://nutriunai.unaividal.com' 
+    : undefined,
   images: {
     remotePatterns: [
       {
