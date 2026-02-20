@@ -56,7 +56,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         const data = await response.json();
         setUser(data.user);
-        router.push('/');
+        
+        // Wait a bit for the cookie to be properly set before redirecting
+        setTimeout(() => {
+            router.push('/');
+        }, 100);
     }, [router]);
 
     const register = useCallback(async (email: string, password: string, name: string): Promise<{ requiresApproval: boolean }> => {
@@ -76,7 +80,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Only auto-login if user is active (first user)
         if (data.user.status === 'active') {
             setUser(data.user);
-            router.push('/');
+            
+            // Wait a bit for the cookie to be properly set before redirecting
+            setTimeout(() => {
+                router.push('/');
+            }, 100);
         }
 
         // Return whether approval is needed
