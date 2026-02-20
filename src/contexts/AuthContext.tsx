@@ -57,7 +57,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const data = await response.json();
         setUser(data.user);
         
-        console.log('Login successful, redirecting to home...');
         // Wait a bit for the cookie to be properly set before redirecting
         setTimeout(() => {
             router.push('/');

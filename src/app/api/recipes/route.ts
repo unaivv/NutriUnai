@@ -9,12 +9,16 @@ const JWT_SECRET = new TextEncoder().encode(
 // Helper to get user ID from token
 async function getUserIdFromToken(request: NextRequest): Promise<string | null> {
     const token = request.cookies.get('auth-token')?.value;
+    console.log('Recipes API - Token exists:', !!token);
+    console.log('Recipes API - All cookies:', request.cookies.getAll());
+    
     if (!token) return null;
 
     try {
         const { payload } = await jwtVerify(token, JWT_SECRET);
         return payload.userId?.toString() || null;
-    } catch {
+    } catch (error) {
+        console.log('Recipes API - Token verification failed:', error);
         return null;
     }
 }

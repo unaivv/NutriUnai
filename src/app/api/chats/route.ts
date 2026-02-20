@@ -9,12 +9,16 @@ const JWT_SECRET = new TextEncoder().encode(
 // Helper to get user ID from token
 async function getUserIdFromToken(request: NextRequest): Promise<number | null> {
     const token = request.cookies.get('auth-token')?.value;
+    console.log('Chats API - Token exists:', !!token);
+    console.log('Chats API - All cookies:', request.cookies.getAll());
+    
     if (!token) return null;
 
     try {
         const { payload } = await jwtVerify(token, JWT_SECRET);
         return payload.userId as number;
-    } catch {
+    } catch (error) {
+        console.log('Chats API - Token verification failed:', error);
         return null;
     }
 }
