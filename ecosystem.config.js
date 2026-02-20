@@ -4,7 +4,7 @@ module.exports = {
     script: 'npm',
     args: 'start',
     cwd: __dirname,
-    env_file: '.env',
+    env_file: '/workspace/NutriUnai/.env',
     instances: 1,
     autorestart: true,
     watch: false,
