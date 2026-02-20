@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { initChatsDatabase, chatsDb } from '@/lib/chatsDatabase';
 import { jwtVerify } from 'jose';
+import { handleCORS } from '@/lib/cors';
 
 const JWT_SECRET = new TextEncoder().encode(
     process.env.JWT_SECRET || 'your-secret-key-change-in-production'
@@ -33,6 +34,10 @@ export interface ChatSaveRequest {
 
 // GET /api/chats - Obtener chats del usuario actual
 export async function GET(request: NextRequest) {
+    // Handle CORS preflight
+    const corsResponse = handleCORS(request);
+    if (corsResponse) return corsResponse;
+
     try {
         const userId = await getUserIdFromToken(request);
         if (!userId) {

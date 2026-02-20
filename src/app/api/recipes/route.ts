@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { recipeDb } from '@/lib/database-simple';
 import { jwtVerify } from 'jose';
+import { handleCORS } from '@/lib/cors';
 
 const JWT_SECRET = new TextEncoder().encode(
     process.env.JWT_SECRET || 'your-secret-key-change-in-production'
@@ -25,6 +26,10 @@ async function getUserIdFromToken(request: NextRequest): Promise<string | null> 
 
 // GET /api/recipes - Get all recipes for current user
 export async function GET(request: NextRequest) {
+    // Handle CORS preflight
+    const corsResponse = handleCORS(request);
+    if (corsResponse) return corsResponse;
+
     try {
         const userId = await getUserIdFromToken(request);
         if (!userId) {
