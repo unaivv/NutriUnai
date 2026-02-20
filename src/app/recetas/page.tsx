@@ -2,8 +2,7 @@
 import React, { useContext, useState } from 'react';
 import { Box, Text, Card, Button, Group, Stack, Title, Badge, Alert, LoadingOverlay } from '@mantine/core';
 import { NavBar } from '@/components/NavBar';
-import { RecipeContextProvider } from '@/contexts/RecipeContext';
-import { RecipeContext } from '@/contexts/RecipeContext';
+import { RecipeContextProvider, RecipeContext } from '@/contexts/RecipeContext';
 import styles from '../Home.styles.module.css';
 
 function RecetasContent() {
