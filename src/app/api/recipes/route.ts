@@ -38,7 +38,15 @@ export async function GET(request: NextRequest) {
         }
 
         const recipes = await recipeDb.getAllForUser(userId);
-        return NextResponse.json(recipes);
+        // Map database fields to frontend interface
+        const mappedRecipes = recipes.map(recipe => ({
+            id: recipe.id,
+            title: recipe.title,
+            content: recipe.content,
+            savedAt: recipe.saved_at,
+            plan: recipe.plan
+        }));
+        return NextResponse.json(mappedRecipes);
     } catch (error) {
         console.error('Error fetching recipes:', error);
         return NextResponse.json(
@@ -77,7 +85,15 @@ export async function POST(request: NextRequest) {
         }
 
         const newRecipe = await recipeDb.create(userId, title, content, plan);
-        return NextResponse.json(newRecipe, { status: 201 });
+        // Map database fields to frontend interface
+        const mappedRecipe = {
+            id: newRecipe.id,
+            title: newRecipe.title,
+            content: newRecipe.content,
+            savedAt: newRecipe.saved_at,
+            plan: newRecipe.plan
+        };
+        return NextResponse.json(mappedRecipe, { status: 201 });
     } catch (error) {
         console.error('Error creating recipe:', error);
         return NextResponse.json(

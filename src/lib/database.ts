@@ -125,8 +125,12 @@ export const recipeDb = {
     getAllForUser: async (userId: number): Promise<RecipeRow[]> => {
         const rows = await all('SELECT * FROM recipes WHERE user_id = ? ORDER BY saved_at DESC', [userId]);
         return rows.map(row => ({
-            ...row,
-            saved_at: row.saved_at
+            id: row.id,
+            user_id: row.user_id,
+            title: row.title,
+            content: row.content,
+            saved_at: row.saved_at,
+            plan: row.plan
         }));
     },
 
