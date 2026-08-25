@@ -1,5 +1,6 @@
 import { jwtVerify } from "jose";
 import { type NextRequest, NextResponse } from "next/server";
+import { handleCORS } from "@/lib/cors";
 import { MICRO_NUTRIENTS, type MicroKey } from "@/lib/microGoals";
 
 const JWT_SECRET = new TextEncoder().encode(
@@ -11,12 +12,16 @@ async function getUserIdFromToken(
   request: NextRequest,
 ): Promise<number | null> {
   const token = request.cookies.get("auth-token")?.value;
+  console.log("Meals Nutrition API - Token exists:", !!token);
+  console.log("Meals Nutrition API - All cookies:", request.cookies.getAll());
+
   if (!token) return null;
 
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     return payload.userId as number;
-  } catch {
+  } catch (error) {
+    console.log("Meals Nutrition API - Token verification failed:", error);
     return null;
   }
 }
@@ -186,6 +191,10 @@ async function searchUsda(query: string): Promise<NutritionCandidate[]> {
 
 // GET /api/meals/nutrition?query= - Busca macros por 100g en Open Food Facts, con fallback a USDA
 export async function GET(request: NextRequest) {
+  // Handle CORS preflight
+  const corsResponse = handleCORS(request);
+  if (corsResponse) return corsResponse;
+
   try {
     const userId = await getUserIdFromToken(request);
     if (!userId) {

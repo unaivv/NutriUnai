@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { jwtVerify } from "jose";
 import { type NextRequest, NextResponse } from "next/server";
+import { handleCORS } from "@/lib/cors";
 import { initMealsDatabase, mealsDb } from "@/lib/mealsDatabase";
 
 const JWT_SECRET = new TextEncoder().encode(
@@ -13,12 +14,16 @@ async function getUserIdFromToken(
   request: NextRequest,
 ): Promise<number | null> {
   const token = request.cookies.get("auth-token")?.value;
+  console.log("Meals Photo API - Token exists:", !!token);
+  console.log("Meals Photo API - All cookies:", request.cookies.getAll());
+
   if (!token) return null;
 
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     return payload.userId as number;
-  } catch {
+  } catch (error) {
+    console.log("Meals Photo API - Token verification failed:", error);
     return null;
   }
 }
@@ -28,6 +33,10 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ filename: string }> },
 ) {
+  // Handle CORS preflight
+  const corsResponse = handleCORS(request);
+  if (corsResponse) return corsResponse;
+
   try {
     const userId = await getUserIdFromToken(request);
     if (!userId) {

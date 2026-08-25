@@ -10,12 +10,16 @@ async function getUserIdFromToken(
   request: NextRequest,
 ): Promise<number | null> {
   const token = request.cookies.get("auth-token")?.value;
+  console.log("Meals Analyze API - Token exists:", !!token);
+  console.log("Meals Analyze API - All cookies:", request.cookies.getAll());
+
   if (!token) return null;
 
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     return payload.userId as number;
-  } catch {
+  } catch (error) {
+    console.log("Meals Analyze API - Token verification failed:", error);
     return null;
   }
 }
