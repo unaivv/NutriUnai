@@ -6,22 +6,25 @@ import { ChatContextProvider } from '@/contexts/ChatContext';
 import { RecipeContextProvider } from '@/contexts/RecipeContext';
 import Chat from '@/components/Chat';
 import { UserNameContext } from '@/contexts/UserNameContext';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 export default function ChatPage() {
   return (
-    <Box className={styles.homeWrapper}>
-      <div className={styles.mainLayout}>
-        <NavBar />
-        <div className={styles.chatArea}>
-          <UserNameContext.Provider value={{ name: 'Unai' }}>
-            <RecipeContextProvider>
-              <ChatContextProvider>
-                <Chat />
-              </ChatContextProvider>
-            </RecipeContextProvider>
-          </UserNameContext.Provider>
+    <ProtectedRoute>
+      <Box className={styles.homeWrapper}>
+        <div className={styles.mainLayout}>
+          <NavBar />
+          <div className={styles.chatArea}>
+            <UserNameContext.Provider value={{ name: 'Unai' }}>
+              <RecipeContextProvider>
+                <ChatContextProvider>
+                  <Chat />
+                </ChatContextProvider>
+              </RecipeContextProvider>
+            </UserNameContext.Provider>
+          </div>
         </div>
-      </div>
-    </Box>
+      </Box>
+    </ProtectedRoute>
   );
 }

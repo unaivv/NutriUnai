@@ -73,9 +73,11 @@ export async function POST(request: NextRequest) {
             name: COOKIE_NAME,
             value: token,
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
-            maxAge: 60 * 60 * 24 * 7 // 7 days
+            secure: false, // Cambiar a false para desarrollo sin HTTPS
+            sameSite: 'lax', // Cambiar a 'lax' para cross-origin
+            maxAge: 60 * 60 * 24 * 7, // 7 days
+            path: '/',
+            domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost'
         });
 
         return response;

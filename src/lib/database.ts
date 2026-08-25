@@ -10,9 +10,11 @@ let initPromise: Promise<void> | null = null;
 
 export interface RecipeRow {
     id?: number;
+    user_id: number;
     title: string;
     content: string;
     saved_at: string;
+    plan?: 'unai' | 'marifeli' | 'both';
 }
 
 export const initDatabase = (): Promise<void> => {
@@ -40,9 +42,12 @@ export const initDatabase = (): Promise<void> => {
             db.run(`
                 CREATE TABLE IF NOT EXISTS recipes (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
                     title TEXT NOT NULL,
                     content TEXT NOT NULL,
-                    saved_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    saved_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    plan TEXT,
+                    FOREIGN KEY (user_id) REFERENCES users(id)
                 )
             `, (err) => {
                 if (err) {
@@ -116,40 +121,52 @@ const all = (sql: string, params: any[] = []): Promise<any[]> => {
 
 // Recipe CRUD operations
 export const recipeDb = {
-    // Get all recipes
-    getAll: async (): Promise<RecipeRow[]> => {
-        const rows = await all('SELECT * FROM recipes ORDER BY saved_at DESC');
+    // Get all recipes for a user
+    getAllForUser: async (userId: number): Promise<RecipeRow[]> => {
+        const rows = await all('SELECT * FROM recipes WHERE user_id = ? ORDER BY saved_at DESC', [userId]);
         return rows.map(row => ({
-            ...row,
-            saved_at: row.saved_at
+            id: row.id,
+            user_id: row.user_id,
+            title: row.title,
+            content: row.content,
+            saved_at: row.saved_at,
+            plan: row.plan
         }));
     },
 
-    // Get recipe by ID
-    getById: async (id: number): Promise<RecipeRow | null> => {
-        return await get('SELECT * FROM recipes WHERE id = ?', [id]);
+    // Get recipe by ID (only if belongs to user)
+    getById: async (id: number, userId?: number): Promise<RecipeRow | null> => {
+        let query = 'SELECT * FROM recipes WHERE id = ?';
+        const params: any[] = [id];
+
+        if (userId !== undefined) {
+            query += ' AND user_id = ?';
+            params.push(userId);
+        }
+
+        return await get(query, params);
     },
 
-    // Create new recipe
-    create: async (title: string, content: string): Promise<RecipeRow> => {
+    // Create new recipe for user
+    create: async (userId: number, title: string, content: string, plan?: 'unai' | 'marifeli' | 'both'): Promise<RecipeRow> => {
         const result = await run(
-            'INSERT INTO recipes (title, content) VALUES (?, ?)',
-            [title, content]
+            'INSERT INTO recipes (user_id, title, content, plan) VALUES (?, ?, ?, ?)',
+            [userId, title, content, plan || null]
         );
 
         const newRecipe = await get('SELECT * FROM recipes WHERE id = ?', [result.lastID]);
         return newRecipe;
     },
 
-    // Delete recipe by ID
-    delete: async (id: number): Promise<boolean> => {
-        const result = await run('DELETE FROM recipes WHERE id = ?', [id]);
+    // Delete recipe by ID (only if belongs to user)
+    delete: async (id: number, userId: number): Promise<boolean> => {
+        const result = await run('DELETE FROM recipes WHERE id = ? AND user_id = ?', [id, userId]);
         return result.changes > 0;
     },
 
-    // Check if recipe content already exists
-    existsByContent: async (content: string): Promise<boolean> => {
-        const recipe = await get('SELECT id FROM recipes WHERE content = ?', [content]);
+    // Check if recipe content already exists for user
+    existsByContent: async (content: string, userId: number): Promise<boolean> => {
+        const recipe = await get('SELECT id FROM recipes WHERE content = ? AND user_id = ?', [content, userId]);
         return !!recipe;
     }
 };

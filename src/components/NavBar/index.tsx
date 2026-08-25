@@ -10,13 +10,17 @@ import {
     Tooltip,
     UnstyledButton,
     Loader,
+    Drawer,
+    Burger,
+    Modal,
 } from '@mantine/core';
-import { IconPlus, IconTrash, IconLogout } from '@tabler/icons-react';
+import { IconPlus, IconTrash, IconLogout, IconX } from '@tabler/icons-react';
 import classes from './NavBar.module.css';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDisclosure } from '@mantine/hooks';
 
 const mainLinks = [
     { label: 'Chat', route: '/' },
@@ -32,6 +36,22 @@ export function NavBar() {
     const [loading, setLoading] = useState(true);
     const [hoveredChat, setHoveredChat] = useState<string | null>(null);
     const [deletingChat, setDeletingChat] = useState<string | null>(null);
+    const [mobileOpened, { toggle: toggleMobile, close: closeMobile }] = useDisclosure(false);
+    const [isMobile, setIsMobile] = useState(false);
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [chatToDelete, setChatToDelete] = useState<string | null>(null);
+
+    // Detectar si es pantalla móvil
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth <= 768);
+        };
+        
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     // Cargar chats desde el backend
     useEffect(() => {
@@ -59,21 +79,25 @@ export function NavBar() {
     const handleDeleteChat = async (chatId: string, e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
+        setChatToDelete(chatId);
+        setDeleteModalOpen(true);
+    };
 
-        if (!confirm('¿Estás seguro de que quieres eliminar este chat?')) return;
+    const confirmDeleteChat = async () => {
+        if (!chatToDelete) return;
 
         try {
-            setDeletingChat(chatId);
-            const response = await fetch(`/api/chats/${chatId}`, {
+            setDeletingChat(chatToDelete);
+            const response = await fetch(`/api/chats/${chatToDelete}`, {
                 method: 'DELETE'
             });
 
             if (response.ok) {
                 // Actualizar la lista de chats
-                setChats(prev => prev.filter(chat => chat.chatId !== chatId));
+                setChats(prev => prev.filter(chat => chat.chatId !== chatToDelete));
 
                 // Si el chat eliminado es el actual, redirigir al home
-                if (pathname === `/chat/${chatId}`) {
+                if (pathname === `/chat/${chatToDelete}`) {
                     router.push('/');
                 }
             } else {
@@ -83,6 +107,20 @@ export function NavBar() {
             console.error('Error deleting chat:', error);
         } finally {
             setDeletingChat(null);
+            setDeleteModalOpen(false);
+            setChatToDelete(null);
+        }
+    };
+
+    const cancelDeleteChat = () => {
+        setDeleteModalOpen(false);
+        setChatToDelete(null);
+    };
+
+    // Función para manejar clic en enlaces (cerrar drawer en móvil)
+    const handleLinkClick = () => {
+        if (isMobile) {
+            closeMobile();
         }
     };
 
@@ -91,7 +129,13 @@ export function NavBar() {
         return (
             <UnstyledButton key={link.label} className={classes.mainLink}>
                 <div className={classes.mainLinkInner}>
-                    <Link href={link.route} className={`${classes.mainLinkText} ${isActive ? classes.active : ''}`}>{link.label}</Link>
+                    <Link 
+                        href={link.route} 
+                        className={`${classes.mainLinkText} ${isActive ? classes.active : ''}`}
+                        onClick={handleLinkClick}
+                    >
+                        {link.label}
+                    </Link>
                 </div>
             </UnstyledButton>
         );
@@ -99,8 +143,9 @@ export function NavBar() {
 
     const userDisplayName = user?.name || 'Usuario';
 
-    return (
-        <nav className={classes.navbar}>
+    // Contenido del navbar (para desktop y drawer)
+    const navbarContent = (
+        <>
             <div className={classes.section}>
                 {/* Logo de la app */}
                 <Text size="lg" fw={700} c="blue" style={{
@@ -148,31 +193,30 @@ export function NavBar() {
                                             onMouseEnter={() => setHoveredChat(chat.chatId)}
                                             onMouseLeave={() => setHoveredChat(null)}
                                             style={{ position: 'relative' }}
+                                            onClick={handleLinkClick}
                                         >
                                             <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                                 {chat.label}
                                             </span>
-                                            {(isHovered || isDeleting) && (
-                                                <ActionIcon
-                                                    size="sm"
-                                                    color="red"
-                                                    variant="transparent"
-                                                    onClick={(e) => handleDeleteChat(chat.chatId, e)}
-                                                    loading={isDeleting}
-                                                    style={{
-                                                        marginLeft: '4px',
-                                                        transition: 'opacity 0.2s ease, transform 0.2s ease',
-                                                        opacity: isHovered || isDeleting ? 1 : 0,
-                                                        transform: isHovered || isDeleting ? 'scale(1)' : 'scale(0.8)'
-                                                    }}
-                                                >
-                                                    <IconTrash size={14} />
-                                                </ActionIcon>
-                                            )}
+                                            <ActionIcon
+                                                size="sm"
+                                                color="red"
+                                                variant="transparent"
+                                                onClick={(e) => handleDeleteChat(chat.chatId, e)}
+                                                loading={isDeleting}
+                                                style={{
+                                                    marginLeft: '4px',
+                                                    transition: 'opacity 0.2s ease, transform 0.2s ease',
+                                                    opacity: (isHovered || isDeleting || isMobile) ? 1 : 0,
+                                                    transform: (isHovered || isDeleting || isMobile) ? 'scale(1)' : 'scale(0.8)'
+                                                }}
+                                            >
+                                                <IconTrash size={14} />
+                                            </ActionIcon>
                                         </Link>
                                     );
                                 })}
-                                <Link href="/" className={classes.newChatLink}>
+                                <Link href="/" className={classes.newChatLink} onClick={handleLinkClick}>
                                     <IconPlus size={16} />
                                     Empezar nuevo chat
                                 </Link>
@@ -182,7 +226,7 @@ export function NavBar() {
                                 <Text size="xs" c="dimmed" style={{ paddingTop: 6, marginBottom: 10 }}>
                                     No tienes chats guardados
                                 </Text>
-                                <Link href="/" className={classes.newChatButton}>
+                                <Link href="/" className={classes.newChatButton} onClick={handleLinkClick}>
                                     <IconPlus size={16} />
                                     Empezar nuevo chat
                                 </Link>
@@ -197,12 +241,86 @@ export function NavBar() {
                     variant="subtle"
                     size="xs"
                     leftSection={<IconLogout size={14} />}
-                    onClick={logout}
+                    onClick={() => {
+                        logout();
+                        if (isMobile) closeMobile();
+                    }}
                     fullWidth
                 >
                     Cerrar sesión
                 </Button>
             </div>
-        </nav>
+        </>
+    );
+
+    return (
+        <>
+            {/* Versión Desktop */}
+            {!isMobile && (
+                <nav className={classes.navbar}>
+                    {navbarContent}
+                </nav>
+            )}
+            
+            {/* Versión Mobile - Burger button */}
+            {isMobile && (
+                <div className={classes.mobileHeader}>
+                    <Group justify="space-between" w="100%">
+                        <Text size="lg" fw={700} c="blue" style={{
+                            fontWeight: 700,
+                            letterSpacing: '0.15em',
+                        }}>NutriUnai</Text>
+                        <Burger
+                            opened={mobileOpened}
+                            onClick={toggleMobile}
+                            size="sm"
+                            color="var(--mantine-color-blue-6)"
+                        />
+                    </Group>
+                </div>
+            )}
+
+            {/* Drawer para Mobile */}
+            <Drawer
+                opened={mobileOpened}
+                onClose={closeMobile}
+                size="280px"
+                padding="md"
+                title={
+                    <Group>
+                        <Text size="lg" fw={700} c="blue">NutriUnai</Text>
+                        <ActionIcon size="sm" onClick={closeMobile}>
+                            <IconX size={16} />
+                        </ActionIcon>
+                    </Group>
+                }
+                withCloseButton={false}
+                overlayProps={{ opacity: 0.5, blur: 4 }}
+            >
+                <div className={classes.mobileDrawerContent}>
+                    {navbarContent}
+                </div>
+            </Drawer>
+
+            {/* Modal de confirmación de eliminación de chat */}
+            <Modal
+                opened={deleteModalOpen}
+                onClose={cancelDeleteChat}
+                title="Confirmar eliminación"
+                centered
+            >
+                <Text mb="lg">
+                    ¿Estás seguro de que quieres eliminar este chat? Esta acción no se puede deshacer.
+                </Text>
+                <Group justify="flex-end">
+                    <Button variant="light" onClick={cancelDeleteChat}>
+                        Cancelar
+                    </Button>
+                    <Button color="red" onClick={confirmDeleteChat} loading={!!deletingChat}>
+                        Eliminar
+                    </Button>
+                </Group>
+            </Modal>
+        </>
     );
 }

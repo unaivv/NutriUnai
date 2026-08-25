@@ -8,8 +8,9 @@ export async function POST(request: NextRequest) {
         value: '',
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 0
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+        maxAge: 0,
+        path: '/'
     });
 
     return response;

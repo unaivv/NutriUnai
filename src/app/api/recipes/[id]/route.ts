@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { recipeDb } from '@/lib/database-simple';
+import { recipeDb, initDatabase } from '@/lib/database';
 import { jwtVerify } from 'jose';
 
 const JWT_SECRET = new TextEncoder().encode(
@@ -7,13 +7,13 @@ const JWT_SECRET = new TextEncoder().encode(
 );
 
 // Helper to get user ID from token
-async function getUserIdFromToken(request: NextRequest): Promise<string | null> {
+async function getUserIdFromToken(request: NextRequest): Promise<number | null> {
     const token = request.cookies.get('auth-token')?.value;
     if (!token) return null;
 
     try {
         const { payload } = await jwtVerify(token, JWT_SECRET);
-        return payload.userId?.toString() || null;
+        return payload.userId ? Number(payload.userId) : null;
     } catch {
         return null;
     }
@@ -25,13 +25,14 @@ export async function DELETE(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        await initDatabase();
         const userId = await getUserIdFromToken(request);
         if (!userId) {
             return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
         }
 
         const resolvedParams = await params;
-        const recipeId = resolvedParams.id;
+        const recipeId = Number(resolvedParams.id);
 
         if (!recipeId) {
             return NextResponse.json(
