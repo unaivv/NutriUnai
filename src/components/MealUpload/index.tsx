@@ -16,6 +16,7 @@ import {
   Textarea,
   TextInput,
 } from "@mantine/core";
+import { DateInput } from "@mantine/dates";
 import { IconCamera, IconRefresh } from "@tabler/icons-react";
 import { useContext, useEffect, useState } from "react";
 import type { DetectedFood, NutritionCandidate } from "@/contexts/MealContext";
@@ -37,6 +38,7 @@ export function MealUpload() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [description, setDescription] = useState("");
+  const [loggedAt, setLoggedAt] = useState<Date | null>(new Date());
   const [analyzing, setAnalyzing] = useState(false);
   const [pendingFoods, setPendingFoods] = useState<PendingFood[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -127,6 +129,17 @@ export function MealUpload() {
 
     try {
       setConfirmingIndex(index);
+      const now = new Date();
+      const entryTimestamp = loggedAt
+        ? new Date(
+            loggedAt.getFullYear(),
+            loggedAt.getMonth(),
+            loggedAt.getDate(),
+            now.getHours(),
+            now.getMinutes(),
+            now.getSeconds(),
+          )
+        : now;
       await createEntry({
         photo: index === 0 ? file : null,
         foodName: food.foodName,
@@ -137,7 +150,7 @@ export function MealUpload() {
         fatPer100g: food.nutrition.fatPer100g,
         microsPer100g: food.nutrition.microsPer100g,
         source: food.nutrition.source,
-        loggedAt: new Date().toISOString(),
+        loggedAt: entryTimestamp.toISOString(),
       });
 
       setPendingFoods((prev) => prev.filter((_, i) => i !== index));
@@ -157,11 +170,11 @@ export function MealUpload() {
 
         <Box
           p="md"
-          style={(theme) => ({
-            border: `1px dashed ${theme.colors.gray[4]}`,
-            borderRadius: theme.radius.md,
-            backgroundColor: theme.colors.gray[0],
-          })}
+          style={{
+            border: "1px dashed var(--mantine-color-default-border)",
+            borderRadius: "var(--mantine-radius-md)",
+            backgroundColor: "var(--mantine-color-default)",
+          }}
         >
           <Stack gap="sm">
             <FileInput
@@ -177,12 +190,12 @@ export function MealUpload() {
 
             {previewUrl && (
               <Box
-                style={(theme) => ({
-                  borderRadius: theme.radius.md,
-                  border: `1px solid ${theme.colors.gray[3]}`,
+                style={{
+                  borderRadius: "var(--mantine-radius-md)",
+                  border: "1px solid var(--mantine-color-default-border)",
                   overflow: "hidden",
                   width: 160,
-                })}
+                }}
               >
                 <Image
                   src={previewUrl}
@@ -195,6 +208,19 @@ export function MealUpload() {
             )}
           </Stack>
         </Box>
+
+        <DateInput
+          label="Fecha"
+          valueFormat="DD/MM/YYYY"
+          value={loggedAt}
+          onChange={(value) =>
+            setLoggedAt(typeof value === "string" ? new Date(value) : value)
+          }
+          maxDate={new Date()}
+          disabled={analyzing}
+          radius="md"
+          clearable={false}
+        />
 
         <Textarea
           label="Descripción (opcional)"
@@ -281,7 +307,7 @@ export function MealUpload() {
                       )}{" "}
                       g
                     </Badge>
-                    <Badge size="sm" variant="light" color="yellow">
+                    <Badge size="sm" variant="light" color="cyan">
                       Grasas:{" "}
                       {formatAmount(
                         food.nutrition.fatPer100g * (food.grams / 100),

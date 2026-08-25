@@ -82,8 +82,12 @@ function extractOffMicros(
 
 async function searchOpenFoodFacts(
   query: string,
+  brand?: string,
 ): Promise<NutritionCandidate[]> {
-  const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=5`;
+  const brandParams = brand
+    ? `&tagtype_0=brands&tag_contains_0=contains&tag_0=${encodeURIComponent(brand)}`
+    : "";
+  const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=5${brandParams}`;
   const res = await fetch(url);
   if (!res.ok) return [];
 
@@ -189,7 +193,9 @@ async function searchUsda(query: string): Promise<NutritionCandidate[]> {
   }));
 }
 
-// GET /api/meals/nutrition?query= - Busca macros por 100g en Open Food Facts, con fallback a USDA
+// GET /api/meals/nutrition?query= - Busca macros/micros por 100g: primero
+// marca Mercadona en Open Food Facts, luego Open Food Facts sin filtrar,
+// con fallback final a USDA FoodData Central.
 export async function GET(request: NextRequest) {
   // Handle CORS preflight
   const corsResponse = handleCORS(request);
@@ -214,7 +220,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    let candidates = await searchOpenFoodFacts(query);
+    // Priorizamos marca Mercadona (Hacendado, Deliplus, Bosque Verde...) ya
+    // que es de donde suele venir la mayoría de la comida real del usuario.
+    let candidates = await searchOpenFoodFacts(query, "mercadona");
+    if (candidates.length === 0) {
+      candidates = await searchOpenFoodFacts(query);
+    }
     if (candidates.length === 0) {
       candidates = await searchUsda(query);
     }

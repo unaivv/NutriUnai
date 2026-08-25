@@ -2,18 +2,25 @@
 
 import {
   Accordion,
+  ActionIcon,
   Badge,
   Button,
   Card,
+  Collapse,
   Group,
   Progress,
   RingProgress,
   Stack,
   Text,
 } from "@mantine/core";
-import { useContext, useMemo } from "react";
+import { IconChevronDown, IconChevronUp } from "@tabler/icons-react";
+import { useContext, useMemo, useState } from "react";
 import { MealContext } from "@/contexts/MealContext";
 import { MICRO_NUTRIENTS, type MicroKey } from "@/lib/microGoals";
+
+function formatAmount(amount: number): string {
+  return amount < 10 ? amount.toFixed(1) : Math.round(amount).toString();
+}
 
 export function DailySummary() {
   const { entries, goal, deleteEntry } = useContext(MealContext);
@@ -61,6 +68,20 @@ export function DailySummary() {
       ),
     [microTotals],
   );
+
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
+
+  const toggleExpanded = (id: number) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   const handleDelete = async (id: number) => {
     if (window.confirm("¿Eliminar esta entrada?")) {
@@ -127,32 +148,124 @@ export function DailySummary() {
                 value={
                   goal ? Math.min(100, (totals.fatG / goal.fatG) * 100) : 0
                 }
-                color="yellow"
+                color="cyan"
               />
             </div>
           </Stack>
         </Group>
 
         <Stack gap="xs">
-          {todayEntries.map((entry) => (
-            <Group key={entry.id} justify="space-between" wrap="nowrap">
-              <div>
-                <Text size="sm">{entry.food_name}</Text>
-                <Badge size="sm" variant="light">
-                  {Math.round(entry.quantity_grams)} g ·{" "}
-                  {Math.round(entry.calories)} kcal
-                </Badge>
-              </div>
-              <Button
-                size="xs"
-                color="red"
-                variant="light"
-                onClick={() => handleDelete(entry.id)}
-              >
-                Eliminar
-              </Button>
-            </Group>
-          ))}
+          {todayEntries.map((entry) => {
+            const proteinKcal = entry.protein_g * 4;
+            const carbsKcal = entry.carbs_g * 4;
+            const fatKcal = entry.fat_g * 9;
+            const macroKcalTotal = proteinKcal + carbsKcal + fatKcal;
+            const micros = entry.micros
+              ? (Object.entries(entry.micros) as [MicroKey, number][]).filter(
+                  ([key, value]) => MICRO_NUTRIENTS[key] && value !== undefined,
+                )
+              : [];
+            const isExpanded = expandedIds.has(entry.id);
+
+            return (
+              <Card key={entry.id} padding="sm" radius="sm" withBorder>
+                <Stack gap={6}>
+                  <Group
+                    justify="space-between"
+                    wrap="nowrap"
+                    align="flex-start"
+                  >
+                    <div>
+                      <Text size="sm" fw={500}>
+                        {entry.food_name}
+                      </Text>
+                      <Text size="xs" c="dimmed">
+                        {Math.round(entry.quantity_grams)} g ·{" "}
+                        {Math.round(entry.calories)} kcal
+                      </Text>
+                    </div>
+                    <Group gap={4} wrap="nowrap">
+                      {micros.length > 0 && (
+                        <ActionIcon
+                          variant="subtle"
+                          color="gray"
+                          size="sm"
+                          onClick={() => toggleExpanded(entry.id)}
+                          title="Ver micronutrientes"
+                        >
+                          {isExpanded ? (
+                            <IconChevronUp size={16} />
+                          ) : (
+                            <IconChevronDown size={16} />
+                          )}
+                        </ActionIcon>
+                      )}
+                      <Button
+                        size="xs"
+                        color="red"
+                        variant="light"
+                        onClick={() => handleDelete(entry.id)}
+                      >
+                        Eliminar
+                      </Button>
+                    </Group>
+                  </Group>
+
+                  {macroKcalTotal > 0 && (
+                    <Progress.Root size="lg">
+                      <Progress.Section
+                        value={(proteinKcal / macroKcalTotal) * 100}
+                        color="grape"
+                        title={`Proteína: ${formatAmount(entry.protein_g)} g`}
+                      />
+                      <Progress.Section
+                        value={(carbsKcal / macroKcalTotal) * 100}
+                        color="orange"
+                        title={`Hidratos: ${formatAmount(entry.carbs_g)} g`}
+                      />
+                      <Progress.Section
+                        value={(fatKcal / macroKcalTotal) * 100}
+                        color="cyan"
+                        title={`Grasas: ${formatAmount(entry.fat_g)} g`}
+                      />
+                    </Progress.Root>
+                  )}
+
+                  <Group gap={4}>
+                    <Badge size="sm" variant="dot" color="grape">
+                      P {formatAmount(entry.protein_g)} g
+                    </Badge>
+                    <Badge size="sm" variant="dot" color="orange">
+                      H {formatAmount(entry.carbs_g)} g
+                    </Badge>
+                    <Badge size="sm" variant="dot" color="cyan">
+                      G {formatAmount(entry.fat_g)} g
+                    </Badge>
+                  </Group>
+
+                  {micros.length > 0 && (
+                    <Collapse in={isExpanded}>
+                      <Group gap={4} pt={4}>
+                        {micros.map(([key, value]) => {
+                          const info = MICRO_NUTRIENTS[key];
+                          return (
+                            <Badge
+                              key={key}
+                              size="sm"
+                              variant="outline"
+                              color="teal"
+                            >
+                              {info.label}: {formatAmount(value)} {info.unit}
+                            </Badge>
+                          );
+                        })}
+                      </Group>
+                    </Collapse>
+                  )}
+                </Stack>
+              </Card>
+            );
+          })}
           {todayEntries.length === 0 && (
             <Text size="sm" c="dimmed">
               No hay entradas registradas hoy.
