@@ -20,7 +20,8 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const mainLinks = [
     { label: 'Chat', route: '/' },
-    { label: 'Recetas', route: '/recetas' }
+    { label: 'Recetas', route: '/recetas' },
+    { label: 'Calorías', route: '/calorias' }
 ];
 
 export function NavBar() {

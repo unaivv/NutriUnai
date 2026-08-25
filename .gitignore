@@ -37,6 +37,13 @@ yarn-error.log*
 # vercel
 .vercel
 
+# meal photo uploads
+meals.db
+/uploads
+
+# user credentials
+users.db
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
