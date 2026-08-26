@@ -8,14 +8,17 @@ import {
   Card,
   Collapse,
   Group,
+  Modal,
   Progress,
   RingProgress,
+  Skeleton,
   Stack,
   Text,
 } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
 import { IconChevronDown, IconChevronUp } from "@tabler/icons-react";
 import { useContext, useMemo, useState } from "react";
-import { MealContext } from "@/contexts/MealContext";
+import { MealContext, type MealEntry } from "@/contexts/MealContext";
 import { MICRO_NUTRIENTS, type MicroKey } from "@/lib/microGoals";
 
 function formatAmount(amount: number): string {
@@ -23,7 +26,8 @@ function formatAmount(amount: number): string {
 }
 
 export function DailySummary() {
-  const { entries, goal, deleteEntry } = useContext(MealContext);
+  const { entries, goal, initialLoading, deleteEntry } =
+    useContext(MealContext);
 
   const todayEntries = useMemo(() => {
     const today = new Date().toDateString();
@@ -83,11 +87,47 @@ export function DailySummary() {
     });
   };
 
-  const handleDelete = async (id: number) => {
-    if (window.confirm("¿Eliminar esta entrada?")) {
-      await deleteEntry(id);
+  const [deleteTarget, setDeleteTarget] = useState<MealEntry | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      setDeleting(true);
+      await deleteEntry(deleteTarget.id);
+      notifications.show({
+        color: "green",
+        message: `${deleteTarget.food_name} eliminado`,
+      });
+      setDeleteTarget(null);
+    } catch {
+      notifications.show({
+        color: "red",
+        message: "No se pudo eliminar la entrada",
+      });
+    } finally {
+      setDeleting(false);
     }
   };
+
+  if (initialLoading) {
+    return (
+      <Card shadow="sm" padding="lg" radius="md" withBorder>
+        <Stack gap="md">
+          <Skeleton height={20} width={120} />
+          <Group align="center">
+            <Skeleton height={120} circle />
+            <Stack gap="xs" style={{ flex: 1 }}>
+              <Skeleton height={14} />
+              <Skeleton height={14} />
+              <Skeleton height={14} />
+            </Stack>
+          </Group>
+          <Skeleton height={60} />
+        </Stack>
+      </Card>
+    );
+  }
 
   return (
     <Card shadow="sm" padding="lg" radius="md" withBorder>
@@ -204,7 +244,7 @@ export function DailySummary() {
                         size="xs"
                         color="red"
                         variant="light"
-                        onClick={() => handleDelete(entry.id)}
+                        onClick={() => setDeleteTarget(entry)}
                       >
                         Eliminar
                       </Button>
@@ -305,6 +345,40 @@ export function DailySummary() {
           </Accordion>
         )}
       </Stack>
+
+      <Modal
+        opened={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        title="Eliminar entrada"
+        centered
+        radius="md"
+      >
+        <Stack gap="md">
+          <Text size="sm">
+            ¿Seguro que quieres eliminar{" "}
+            <Text span fw={500}>
+              {deleteTarget?.food_name}
+            </Text>
+            ? Esta acción no se puede deshacer.
+          </Text>
+          <Group justify="flex-end">
+            <Button
+              variant="default"
+              onClick={() => setDeleteTarget(null)}
+              disabled={deleting}
+            >
+              Cancelar
+            </Button>
+            <Button
+              color="red"
+              onClick={handleConfirmDelete}
+              loading={deleting}
+            >
+              Eliminar
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </Card>
   );
 }

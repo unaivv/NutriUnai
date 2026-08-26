@@ -1,8 +1,10 @@
 import '@mantine/core/styles.css';
 import '@mantine/charts/styles.css';
 import '@mantine/dates/styles.css';
+import '@mantine/notifications/styles.css';
 import { MantineProvider, ColorSchemeScript } from '@mantine/core';
 import { DatesProvider } from '@mantine/dates';
+import { Notifications } from '@mantine/notifications';
 import { AuthProvider } from '@/contexts/AuthContext';
 import './global.css';
 
@@ -21,6 +23,7 @@ export default function RootLayout({
       </head>
       <body>
         <MantineProvider defaultColorScheme="auto">
+          <Notifications position="top-right" />
           <DatesProvider settings={{ locale: 'es', firstDayOfWeek: 1 }}>
             <AuthProvider>
               {children}

@@ -1,7 +1,7 @@
 "use client";
 
 import { BarChart } from "@mantine/charts";
-import { ActionIcon, Card, Group, Stack, Text } from "@mantine/core";
+import { ActionIcon, Card, Group, Skeleton, Stack, Text } from "@mantine/core";
 import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 import { useContext, useEffect, useMemo, useState } from "react";
 import { MealContext, type MealEntry } from "@/contexts/MealContext";
@@ -38,30 +38,35 @@ function formatRangeLabel(monday: Date, sunday: Date) {
 }
 
 export function WeeklyChart() {
-  const { goal, fetchEntriesInRange } = useContext(MealContext);
+  const { goal, version, fetchEntriesInRange } = useContext(MealContext);
   const [weekOffset, setWeekOffset] = useState(0);
   const [weekEntries, setWeekEntries] = useState<MealEntry[]>([]);
+  const [weekLoading, setWeekLoading] = useState(true);
 
   const { monday, sunday } = useMemo(
     () => getWeekRange(weekOffset),
     [weekOffset],
   );
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: version forces a refetch when entries change elsewhere
   useEffect(() => {
     let cancelled = false;
+    setWeekLoading(true);
 
-    fetchEntriesInRange(monday.toISOString(), sunday.toISOString()).then(
-      (data) => {
+    fetchEntriesInRange(monday.toISOString(), sunday.toISOString())
+      .then((data) => {
         if (!cancelled) {
           setWeekEntries(data);
         }
-      },
-    );
+      })
+      .finally(() => {
+        if (!cancelled) setWeekLoading(false);
+      });
 
     return () => {
       cancelled = true;
     };
-  }, [monday, sunday, fetchEntriesInRange]);
+  }, [monday, sunday, version, fetchEntriesInRange]);
 
   const data = useMemo(() => {
     const byDay = new Map<string, number>();
@@ -114,17 +119,27 @@ export function WeeklyChart() {
             </ActionIcon>
           </Group>
         </Group>
-        <BarChart
-          h={250}
-          data={data}
-          dataKey="day"
-          series={[{ name: "kcal", color: "blue.6" }]}
-          referenceLines={
-            goal
-              ? [{ y: Math.round(goal.kcal), label: "Objetivo", color: "red" }]
-              : []
-          }
-        />
+        {weekLoading ? (
+          <Skeleton height={250} radius="md" />
+        ) : (
+          <BarChart
+            h={250}
+            data={data}
+            dataKey="day"
+            series={[{ name: "kcal", color: "blue.6" }]}
+            referenceLines={
+              goal
+                ? [
+                    {
+                      y: Math.round(goal.kcal),
+                      label: "Objetivo",
+                      color: "red",
+                    },
+                  ]
+                : []
+            }
+          />
+        )}
       </Stack>
     </Card>
   );

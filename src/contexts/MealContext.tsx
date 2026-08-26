@@ -60,7 +60,9 @@ export interface IMealContext {
   entries: MealEntry[];
   goal: NutritionGoal | null;
   loading: boolean;
+  initialLoading: boolean;
   error: string | null;
+  version: number;
   analyzePhoto: (file: File, description?: string) => Promise<DetectedFood[]>;
   lookupNutrition: (query: string) => Promise<NutritionCandidate[]>;
   createEntry: (input: CreateMealEntryInput) => Promise<void>;
@@ -74,7 +76,9 @@ const defaultValue: IMealContext = {
   entries: [],
   goal: null,
   loading: false,
+  initialLoading: true,
   error: null,
+  version: 0,
   analyzePhoto: async (_file: File, _description?: string) => [],
   lookupNutrition: async () => [],
   createEntry: async () => {},
@@ -92,7 +96,9 @@ export const MealContextProvider: React.FC<{ children: React.ReactNode }> = ({
   const [entries, setEntries] = useState<MealEntry[]>([]);
   const [goal, setGoal] = useState<NutritionGoal | null>(null);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [version, setVersion] = useState(0);
 
   // Load entries from API for a date range
   const refreshEntries = useCallback(async (from: string, to: string) => {
@@ -166,8 +172,9 @@ export const MealContextProvider: React.FC<{ children: React.ReactNode }> = ({
       59,
       59,
     ).toISOString();
-    refreshEntries(from, to);
-    refreshGoal();
+    Promise.all([refreshEntries(from, to), refreshGoal()]).finally(() => {
+      setInitialLoading(false);
+    });
   }, [refreshEntries, refreshGoal]);
 
   const analyzePhoto = useCallback(
@@ -240,6 +247,7 @@ export const MealContextProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const newEntry = await response.json();
       setEntries((prev) => [newEntry, ...prev]);
+      setVersion((v) => v + 1);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Error al guardar la entrada";
@@ -264,6 +272,7 @@ export const MealContextProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       setEntries((prev) => prev.filter((entry) => entry.id !== id));
+      setVersion((v) => v + 1);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Error al eliminar la entrada";
@@ -280,7 +289,9 @@ export const MealContextProvider: React.FC<{ children: React.ReactNode }> = ({
         entries,
         goal,
         loading,
+        initialLoading,
         error,
+        version,
         analyzePhoto,
         lookupNutrition,
         createEntry,

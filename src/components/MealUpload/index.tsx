@@ -17,6 +17,7 @@ import {
   TextInput,
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
+import { notifications } from "@mantine/notifications";
 import { IconCamera, IconRefresh } from "@tabler/icons-react";
 import { useContext, useEffect, useState } from "react";
 import type { DetectedFood, NutritionCandidate } from "@/contexts/MealContext";
@@ -44,6 +45,7 @@ export function MealUpload() {
   const [error, setError] = useState<string | null>(null);
   const [confirmingIndex, setConfirmingIndex] = useState<number | null>(null);
   const [relookupIndex, setRelookupIndex] = useState<number | null>(null);
+  const [photoConsumed, setPhotoConsumed] = useState(false);
 
   // Revoke the object URL once it's no longer the active preview
   useEffect(() => {
@@ -56,6 +58,7 @@ export function MealUpload() {
     setFile(selectedFile);
     setPendingFoods([]);
     setError(null);
+    setPhotoConsumed(false);
 
     setPreviewUrl((prev) => {
       if (prev) URL.revokeObjectURL(prev);
@@ -123,6 +126,28 @@ export function MealUpload() {
     }
   };
 
+  const resetForm = () => {
+    setFile(null);
+    setDescription("");
+    setPhotoConsumed(false);
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+  };
+
+  const removePendingFood = (index: number) => {
+    setPendingFoods((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      if (next.length === 0) resetForm();
+      return next;
+    });
+  };
+
+  const handleDiscard = (index: number) => {
+    removePendingFood(index);
+  };
+
   const handleConfirm = async (index: number) => {
     const food = pendingFoods[index];
     if (!food.nutrition) return;
@@ -140,8 +165,9 @@ export function MealUpload() {
             now.getSeconds(),
           )
         : now;
+      const attachPhoto = !photoConsumed && !!file;
       await createEntry({
-        photo: index === 0 ? file : null,
+        photo: attachPhoto ? file : null,
         foodName: food.foodName,
         quantityGrams: food.grams,
         caloriesPer100g: food.nutrition.caloriesPer100g,
@@ -152,8 +178,13 @@ export function MealUpload() {
         source: food.nutrition.source,
         loggedAt: entryTimestamp.toISOString(),
       });
+      if (attachPhoto) setPhotoConsumed(true);
 
-      setPendingFoods((prev) => prev.filter((_, i) => i !== index));
+      notifications.show({
+        color: "green",
+        message: `${food.foodName} añadido`,
+      });
+      removePendingFood(index);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Error al guardar la entrada",
@@ -346,6 +377,15 @@ export function MealUpload() {
                   <Group justify="flex-end">
                     <Button
                       size="sm"
+                      variant="subtle"
+                      color="gray"
+                      onClick={() => handleDiscard(index)}
+                      disabled={confirmingIndex === index}
+                    >
+                      Descartar
+                    </Button>
+                    <Button
+                      size="sm"
                       onClick={() => handleConfirm(index)}
                       loading={confirmingIndex === index}
                     >
@@ -354,9 +394,21 @@ export function MealUpload() {
                   </Group>
                 </>
               ) : (
-                <Text size="sm" c="red">
-                  No se encontraron datos nutricionales para este alimento
-                </Text>
+                <>
+                  <Text size="sm" c="red">
+                    No se encontraron datos nutricionales para este alimento
+                  </Text>
+                  <Group justify="flex-end">
+                    <Button
+                      size="sm"
+                      variant="subtle"
+                      color="gray"
+                      onClick={() => handleDiscard(index)}
+                    >
+                      Descartar
+                    </Button>
+                  </Group>
+                </>
               )}
             </Stack>
           </Card>
