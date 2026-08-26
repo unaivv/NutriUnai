@@ -56,9 +56,32 @@ export interface CreateMealEntryInput {
   loggedAt: string;
 }
 
+export interface SavedMealItem {
+  foodName: string;
+  quantityGrams: number;
+  caloriesPer100g: number;
+  proteinPer100g: number;
+  carbsPer100g: number;
+  fatPer100g: number;
+  microsPer100g?: Partial<Record<MicroKey, number>>;
+  source: string;
+}
+
+export interface SavedMeal {
+  id: number;
+  name: string;
+  items: SavedMealItem[];
+}
+
+export interface CreateSavedMealInput {
+  name: string;
+  items: SavedMealItem[];
+}
+
 export interface IMealContext {
   entries: MealEntry[];
   goal: NutritionGoal | null;
+  savedMeals: SavedMeal[];
   loading: boolean;
   initialLoading: boolean;
   error: string | null;
@@ -70,11 +93,15 @@ export interface IMealContext {
   refreshEntries: (from: string, to: string) => Promise<void>;
   fetchEntriesInRange: (from: string, to: string) => Promise<MealEntry[]>;
   refreshGoal: (plan?: "unai" | "marifeli" | "both") => Promise<void>;
+  fetchSavedMeals: () => Promise<void>;
+  saveMeal: (input: CreateSavedMealInput) => Promise<void>;
+  deleteSavedMeal: (id: number) => Promise<void>;
 }
 
 const defaultValue: IMealContext = {
   entries: [],
   goal: null,
+  savedMeals: [],
   loading: false,
   initialLoading: true,
   error: null,
@@ -86,7 +113,25 @@ const defaultValue: IMealContext = {
   refreshEntries: async () => {},
   fetchEntriesInRange: async () => [],
   refreshGoal: async () => {},
+  fetchSavedMeals: async () => {},
+  saveMeal: async () => {},
+  deleteSavedMeal: async () => {},
 };
+
+const mapSavedMeal = (row: any): SavedMeal => ({
+  id: row.id,
+  name: row.name,
+  items: (row.items || []).map((item: any) => ({
+    foodName: item.food_name,
+    quantityGrams: item.quantity_grams,
+    caloriesPer100g: item.calories_per_100g,
+    proteinPer100g: item.protein_per_100g,
+    carbsPer100g: item.carbs_per_100g,
+    fatPer100g: item.fat_per_100g,
+    microsPer100g: item.micros || undefined,
+    source: item.source,
+  })),
+});
 
 export const MealContext = createContext<IMealContext>(defaultValue);
 
@@ -95,6 +140,7 @@ export const MealContextProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [entries, setEntries] = useState<MealEntry[]>([]);
   const [goal, setGoal] = useState<NutritionGoal | null>(null);
+  const [savedMeals, setSavedMeals] = useState<SavedMeal[]>([]);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -157,6 +203,48 @@ export const MealContextProvider: React.FC<{ children: React.ReactNode }> = ({
     [],
   );
 
+  const fetchSavedMeals = useCallback(async () => {
+    try {
+      const response = await fetch("/api/meals/saved");
+      if (!response.ok) {
+        throw new Error("Failed to fetch saved meals");
+      }
+
+      const data = await response.json();
+      setSavedMeals(data.map(mapSavedMeal));
+    } catch (err) {
+      console.error("Error loading saved meals:", err);
+    }
+  }, []);
+
+  const saveMeal = useCallback(async (input: CreateSavedMealInput) => {
+    const response = await fetch("/api/meals/saved", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to save meal");
+    }
+
+    const newSavedMeal = await response.json();
+    setSavedMeals((prev) => [...prev, mapSavedMeal(newSavedMeal)]);
+  }, []);
+
+  const deleteSavedMeal = useCallback(async (id: number) => {
+    const response = await fetch(`/api/meals/saved/${id}`, {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to delete saved meal");
+    }
+
+    setSavedMeals((prev) => prev.filter((meal) => meal.id !== id));
+  }, []);
+
   useEffect(() => {
     const today = new Date();
     const from = new Date(
@@ -172,10 +260,14 @@ export const MealContextProvider: React.FC<{ children: React.ReactNode }> = ({
       59,
       59,
     ).toISOString();
-    Promise.all([refreshEntries(from, to), refreshGoal()]).finally(() => {
+    Promise.all([
+      refreshEntries(from, to),
+      refreshGoal(),
+      fetchSavedMeals(),
+    ]).finally(() => {
       setInitialLoading(false);
     });
-  }, [refreshEntries, refreshGoal]);
+  }, [refreshEntries, refreshGoal, fetchSavedMeals]);
 
   const analyzePhoto = useCallback(
     async (file: File, description?: string): Promise<DetectedFood[]> => {
@@ -288,6 +380,7 @@ export const MealContextProvider: React.FC<{ children: React.ReactNode }> = ({
       value={{
         entries,
         goal,
+        savedMeals,
         loading,
         initialLoading,
         error,
@@ -299,6 +392,9 @@ export const MealContextProvider: React.FC<{ children: React.ReactNode }> = ({
         refreshEntries,
         fetchEntriesInRange,
         refreshGoal,
+        fetchSavedMeals,
+        saveMeal,
+        deleteSavedMeal,
       }}
     >
       {children}

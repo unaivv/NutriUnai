@@ -10,6 +10,8 @@ import {
   FileInput,
   Group,
   Image,
+  NumberInput,
+  Select,
   Slider,
   Stack,
   Text,
@@ -34,7 +36,7 @@ interface PendingFood extends DetectedFood {
 }
 
 export function MealUpload() {
-  const { analyzePhoto, lookupNutrition, createEntry } =
+  const { analyzePhoto, lookupNutrition, createEntry, savedMeals, saveMeal } =
     useContext(MealContext);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -46,6 +48,11 @@ export function MealUpload() {
   const [confirmingIndex, setConfirmingIndex] = useState<number | null>(null);
   const [relookupIndex, setRelookupIndex] = useState<number | null>(null);
   const [photoConsumed, setPhotoConsumed] = useState(false);
+  const [savedMealSelection, setSavedMealSelection] = useState<string | null>(
+    null,
+  );
+  const [saveMealName, setSaveMealName] = useState("");
+  const [savingMeal, setSavingMeal] = useState(false);
 
   // Revoke the object URL once it's no longer the active preview
   useEffect(() => {
@@ -107,6 +114,69 @@ export function MealUpload() {
     setPendingFoods((prev) =>
       prev.map((food, i) => (i === index ? { ...food, foodName } : food)),
     );
+  };
+
+  const handleSelectSavedMeal = (savedMealId: string | null) => {
+    if (!savedMealId) return;
+
+    const saved = savedMeals.find((meal) => String(meal.id) === savedMealId);
+    if (!saved) return;
+
+    const newFoods: PendingFood[] = saved.items.map((item) => ({
+      foodName: item.foodName,
+      estimatedGrams: item.quantityGrams,
+      grams: item.quantityGrams,
+      nutrition: {
+        foodName: item.foodName,
+        caloriesPer100g: item.caloriesPer100g,
+        proteinPer100g: item.proteinPer100g,
+        carbsPer100g: item.carbsPer100g,
+        fatPer100g: item.fatPer100g,
+        microsPer100g: item.microsPer100g,
+        source: item.source,
+      },
+    }));
+
+    setPendingFoods((prev) => [...prev, ...newFoods]);
+    setSavedMealSelection(null);
+  };
+
+  const handleSaveMeal = async () => {
+    const name = saveMealName.trim();
+    if (!name) return;
+
+    const items = pendingFoods.filter((food) => food.nutrition);
+    if (items.length === 0) return;
+
+    try {
+      setSavingMeal(true);
+      await saveMeal({
+        name,
+        items: items.map((food) => ({
+          foodName: food.foodName,
+          quantityGrams: food.grams,
+          caloriesPer100g: food.nutrition!.caloriesPer100g,
+          proteinPer100g: food.nutrition!.proteinPer100g,
+          carbsPer100g: food.nutrition!.carbsPer100g,
+          fatPer100g: food.nutrition!.fatPer100g,
+          microsPer100g: food.nutrition!.microsPer100g,
+          source: food.nutrition!.source,
+        })),
+      });
+      notifications.show({
+        color: "green",
+        message: `"${name}" guardada para reutilizarla`,
+      });
+      setSaveMealName("");
+    } catch (err) {
+      notifications.show({
+        color: "red",
+        message:
+          err instanceof Error ? err.message : "No se pudo guardar la comida",
+      });
+    } finally {
+      setSavingMeal(false);
+    }
   };
 
   const handleRelookupNutrition = async (index: number) => {
@@ -198,6 +268,20 @@ export function MealUpload() {
     <Card shadow="sm" padding="lg" radius="md" withBorder>
       <Stack gap="md">
         <Text fw={500}>Registrar comida por foto</Text>
+
+        <Select
+          label="Buscar comida guardada"
+          placeholder="Escribe para buscar por nombre"
+          searchable
+          clearable
+          value={savedMealSelection}
+          onChange={handleSelectSavedMeal}
+          data={savedMeals.map((meal) => ({
+            value: String(meal.id),
+            label: meal.name,
+          }))}
+          radius="md"
+        />
 
         <Box
           p="md"
@@ -307,15 +391,24 @@ export function MealUpload() {
               </Group>
               {food.nutrition ? (
                 <>
-                  <Text size="sm" c="dimmed">
-                    {Math.round(food.grams)} g
-                  </Text>
-                  <Slider
-                    min={1}
-                    max={Math.max(500, Math.round(food.grams * 2))}
-                    value={food.grams}
-                    onChange={(value) => handleGramsChange(index, value)}
-                  />
+                  <Group gap="xs" align="center" wrap="nowrap">
+                    <Slider
+                      style={{ flex: 1 }}
+                      min={1}
+                      max={Math.max(500, Math.round(food.grams * 2))}
+                      value={food.grams}
+                      onChange={(value) => handleGramsChange(index, value)}
+                    />
+                    <NumberInput
+                      w={90}
+                      min={1}
+                      value={food.grams}
+                      onChange={(value) =>
+                        handleGramsChange(index, Number(value) || 0)
+                      }
+                      suffix=" g"
+                    />
+                  </Group>
 
                   <Group gap="xs">
                     <Badge size="sm" variant="light" color="blue">
@@ -413,6 +506,25 @@ export function MealUpload() {
             </Stack>
           </Card>
         ))}
+
+        {pendingFoods.some((food) => food.nutrition) && (
+          <Group gap="xs" align="flex-end" wrap="nowrap">
+            <TextInput
+              label="Nombre para guardar esta comida completa"
+              placeholder="ej: Desayuno de diario"
+              value={saveMealName}
+              onChange={(event) => setSaveMealName(event.currentTarget.value)}
+              style={{ flex: 1 }}
+            />
+            <Button
+              onClick={handleSaveMeal}
+              disabled={!saveMealName.trim()}
+              loading={savingMeal}
+            >
+              Guardar comida completa
+            </Button>
+          </Group>
+        )}
       </Stack>
     </Card>
   );
